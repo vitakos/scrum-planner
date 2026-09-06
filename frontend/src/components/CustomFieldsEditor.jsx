@@ -3,6 +3,7 @@ import { api } from '../services/api.js';
 
 const DATA_TYPE_LABELS = {
   TEXT: 'Text',
+  RICH_TEXT: 'Rich text',
   NUMBER: 'Number',
   DATE: 'Date',
   BOOLEAN: 'Boolean',

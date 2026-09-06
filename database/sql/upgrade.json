@@ -31,6 +31,10 @@
     {
       "file": "0008_custom_field_definition_data_type_check.sql",
       "appliedAt": "2026-09-06T12:54:18.952Z"
+    },
+    {
+      "file": "0009_custom_field_definition_rich_text.sql",
+      "appliedAt": "2026-09-06T14:06:56.901Z"
     }
   ]
 }

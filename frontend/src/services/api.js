@@ -25,6 +25,7 @@ async function request(path, options = {}) {
 export const api = {
   listProjects: () => request('/api/projects'),
   getProject: (id) => request(`/api/projects/${id}`),
+  getWorkItemByKey: (key) => request(`/api/work-items/by-key/${encodeURIComponent(key)}`),
   createProject: (payload) =>
     request('/api/projects', { method: 'POST', body: JSON.stringify(payload) }),
 

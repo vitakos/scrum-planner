@@ -136,6 +136,36 @@ public class WorkItemService {
         return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), content.description(), content.customFields());
     }
 
+    /**
+     * Resolves a human-readable key such as "SPAI-1" (project key + '-' +
+     * per-project sequence, see docs/backlog-data-model.md and
+     * Project#nextWorkItemSeq) to its work item, without needing the
+     * project id up front. Backs the frontend route/link scheme that
+     * addresses a work item by key alone (e.g. "/SPAI-1"), including links
+     * inserted from the rich text editor.
+     */
+    @Transactional(readOnly = true)
+    public WorkItemResponse getWorkItemByKey(String key) {
+        int separatorIndex = key.lastIndexOf('-');
+        if (separatorIndex <= 0 || separatorIndex == key.length() - 1) {
+            throw new NotFoundException("Not a valid work item key: " + key);
+        }
+        String projectKey = key.substring(0, separatorIndex);
+        int seq;
+        try {
+            seq = Integer.parseInt(key.substring(separatorIndex + 1));
+        } catch (NumberFormatException e) {
+            throw new NotFoundException("Not a valid work item key: " + key);
+        }
+
+        Project project = projectRepository.findByKey(projectKey)
+                .orElseThrow(() -> new NotFoundException("No project with key '" + projectKey + "' for work item key: " + key));
+        WorkItem item = workItemRepository.findByProjectIdAndSeq(project.getId(), seq)
+                .orElseThrow(() -> new NotFoundException("Work item not found: " + key));
+        WorkItemContent content = workItemContentService.find(item.getContentRef()).orElse(WorkItemContent.EMPTY);
+        return toResponse(item, project.getKey(), loadContext(project.getId(), item.getType()), content.description(), content.customFields());
+    }
+
     @Transactional
     public WorkItemResponse updateWorkItem(UUID projectId, UUID workItemId, UpdateWorkItemRequest request) {
         Project project = requireProject(projectId);

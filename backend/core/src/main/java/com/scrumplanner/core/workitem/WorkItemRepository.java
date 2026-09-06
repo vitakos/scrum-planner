@@ -3,6 +3,7 @@ package com.scrumplanner.core.workitem;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface WorkItemRepository extends JpaRepository<WorkItem, UUID> {
@@ -11,6 +12,8 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, UUID> {
     List<WorkItem> findAllByProjectIdAndTypeOrderBySeqAsc(UUID projectId, String type);
 
     List<WorkItem> findAllByParentId(UUID parentId);
+
+    Optional<WorkItem> findByProjectIdAndSeq(UUID projectId, int seq);
 
     int countByParentId(UUID parentId);
 

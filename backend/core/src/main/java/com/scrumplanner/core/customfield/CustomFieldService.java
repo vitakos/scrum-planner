@@ -22,10 +22,11 @@ import java.util.stream.Collectors;
 @Service
 public class CustomFieldService {
 
-    // Kept in sync with chk_custom_field_definition_data_type in
-    // database/sql/migrations/0008_custom_field_definition_data_type_check.sql.
+    // Kept in sync with chk_custom_field_definition_data_type, as introduced by
+    // database/sql/migrations/0008_custom_field_definition_data_type_check.sql
+    // and extended by 0009_custom_field_definition_rich_text.sql.
     private static final Set<String> VALID_DATA_TYPES = Set.of(
-            "TEXT", "NUMBER", "DATE", "BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT"
+            "TEXT", "RICH_TEXT", "NUMBER", "DATE", "BOOLEAN", "SINGLE_SELECT", "MULTI_SELECT"
     );
     private static final Set<String> SELECT_DATA_TYPES = Set.of("SINGLE_SELECT", "MULTI_SELECT");
 

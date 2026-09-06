@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../services/api.js';
 import WorkItemBoard from '../components/WorkItemBoard.jsx';
 
-export default function BacklogPage({ project }) {
+export default function BacklogPage({ project, focusItemKey, onItemOpened, onItemClosed }) {
   const [workflows, setWorkflows] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -66,6 +66,19 @@ export default function BacklogPage({ project }) {
     setPresetParentId(null);
   }
 
+  // A focused item (from the "/:itemKey" route, see App) may belong to a
+  // work item type other than the one currently active — switch to it so
+  // WorkItemBoard actually has the item in its `items` list to open.
+  useEffect(() => {
+    if (!focusItemKey) return;
+    const target = items.find((i) => i.key === focusItemKey);
+    if (target && target.type !== activeType) {
+      setActiveType(target.type);
+      setParentFilter(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusItemKey, items]);
+
   if (loading) return <p className="page-center">Loading backlog…</p>;
   if (error) return <p className="error-banner">{error}</p>;
 
@@ -110,10 +123,13 @@ export default function BacklogPage({ project }) {
               allItems={items}
               customFieldCatalogs={customFieldCatalogs}
               presetParentId={presetParentId}
+              focusItemKey={focusItemKey}
               onItemChanged={upsertItem}
               onItemDeleted={removeItem}
               onAddChild={handleAddChild}
               onDrillDown={handleDrillDown}
+              onItemOpened={onItemOpened}
+              onItemClosed={onItemClosed}
             />
           ) : (
             <p>No work item types configured for this project.</p>

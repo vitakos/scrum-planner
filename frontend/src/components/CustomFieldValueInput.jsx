@@ -1,12 +1,25 @@
+import MarkdownEditor from './MarkdownEditor.jsx';
+
 /**
  * Renders the right input for one custom field's value, based on its
  * configured dataType (see backend CustomFieldService's VALID_DATA_TYPES).
  * `value`/`onChange` carry the raw JS value that gets sent as-is in the
  * work item's `customFields` map (number, boolean, string, or string[]
- * for MULTI_SELECT).
+ * for MULTI_SELECT; a Markdown string for RICH_TEXT).
  */
-export default function CustomFieldValueInput({ field, value, onChange, disabled }) {
+export default function CustomFieldValueInput({ field, value, onChange, disabled, items }) {
   switch (field.dataType) {
+    case 'RICH_TEXT':
+      return (
+        <MarkdownEditor
+          value={value ?? ''}
+          onChange={(next) => onChange(next || null)}
+          placeholder={`Add ${field.name.toLowerCase()}… (Markdown supported)`}
+          disabled={disabled}
+          items={items}
+        />
+      );
+
     case 'NUMBER':
       return (
         <input

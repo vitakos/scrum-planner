@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../services/api.js';
 import { resolveStateColor } from '../utils/stateColors.js';
 import { parentTypesFor, childTypesFor } from '../utils/workItemHierarchy.js';
@@ -18,10 +18,13 @@ export default function WorkItemBoard({
   allItems,
   customFieldCatalogs,
   presetParentId,
+  focusItemKey,
   onItemChanged,
   onItemDeleted,
   onAddChild,
-  onDrillDown
+  onDrillDown,
+  onItemOpened,
+  onItemClosed
 }) {
   const [newTitle, setNewTitle] = useState('');
   const [newParentId, setNewParentId] = useState(presetParentId ?? '');
@@ -29,6 +32,27 @@ export default function WorkItemBoard({
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
   const [detailItem, setDetailItem] = useState(null);
+
+  // Opens the item a "/:itemKey" route (or a "$SPAI-1" link click) points
+  // at, once it shows up in `items` — this board remounts (see BacklogPage's
+  // `key={activeWorkflow.workItemType}`) whenever the focused item is in a
+  // different work item type, so this only needs to handle "already here".
+  useEffect(() => {
+    if (!focusItemKey) return;
+    const target = items.find((i) => i.key === focusItemKey);
+    if (target) setDetailItem(target);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusItemKey, items]);
+
+  function openDetail(item) {
+    setDetailItem(item);
+    onItemOpened?.(item);
+  }
+
+  function closeDetail() {
+    setDetailItem(null);
+    onItemClosed?.();
+  }
 
   const states = [...workflow.states].sort((a, b) => a.sortOrder - b.sortOrder);
   const itemsByState = Object.fromEntries(states.map((s) => [s.id, []]));
@@ -155,9 +179,9 @@ export default function WorkItemBoard({
                       className="board-card-title"
                       role="button"
                       tabIndex={0}
-                      onClick={() => setDetailItem(item)}
+                      onClick={() => openDetail(item)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') setDetailItem(item);
+                        if (e.key === 'Enter' || e.key === ' ') openDetail(item);
                       }}
                     >
                       {item.title}
@@ -224,7 +248,7 @@ export default function WorkItemBoard({
                       <button
                         type="button"
                         className="link-button"
-                        onClick={() => setDetailItem(item)}
+                        onClick={() => openDetail(item)}
                       >
                         {item.content ? 'Edit description' : 'Add description'}
                       </button>
@@ -248,13 +272,14 @@ export default function WorkItemBoard({
         <WorkItemDetailModal
           projectId={projectId}
           item={detailItem}
+          items={allItems}
           customFieldDefs={
             (customFieldCatalogs ?? []).find((c) => c.workItemType === detailItem.type)?.customFields ?? []
           }
-          onClose={() => setDetailItem(null)}
+          onClose={closeDetail}
           onSaved={(updated) => {
             onItemChanged(updated);
-            setDetailItem(null);
+            closeDetail();
           }}
         />
       )}

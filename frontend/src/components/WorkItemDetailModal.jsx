@@ -12,7 +12,7 @@ function formatDate(value) {
   }
 }
 
-export default function WorkItemDetailModal({ projectId, item, customFieldDefs, onClose, onSaved }) {
+export default function WorkItemDetailModal({ projectId, item, items, customFieldDefs, onClose, onSaved }) {
   const [content, setContent] = useState(item.content ?? '');
   const [customFieldValues, setCustomFieldValues] = useState(item.customFields ?? {});
   const [saving, setSaving] = useState(false);
@@ -101,6 +101,7 @@ export default function WorkItemDetailModal({ projectId, item, customFieldDefs, 
           onChange={setContent}
           placeholder="Add a description… (Markdown supported)"
           disabled={saving}
+          items={items}
         />
 
         {fieldDefs.length > 0 && (
@@ -114,6 +115,7 @@ export default function WorkItemDetailModal({ projectId, item, customFieldDefs, 
                   value={customFieldValues[field.name] ?? null}
                   onChange={(value) => setFieldValue(field.name, value)}
                   disabled={saving}
+                  items={items}
                 />
               </div>
             ))}
