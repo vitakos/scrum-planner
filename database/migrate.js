@@ -175,6 +175,10 @@ function applySqlMigration(file) {
     'exec', '-T', 'postgres',
     'psql',
     '-v', 'ON_ERROR_STOP=1',
+    '-1', // wrap the whole file in a single transaction: a failing statement
+          // rolls back everything from this file instead of leaving a partial
+          // schema change behind that breaks a retry (e.g. "relation already
+          // exists" on a CREATE TABLE that had already committed).
     '-U', cfg('POSTGRES_USER', 'scrum_planner'),
     '-d', cfg('POSTGRES_DB', 'scrum_planner'),
     '-f', dest

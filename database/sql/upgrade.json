@@ -1,8 +1,3 @@
 {
-  "applied": [
-    {
-      "file": "0001_init_schema.sql",
-      "appliedAt": "2026-09-06T09:10:44.400Z"
-    }
-  ]
+  "applied": []
 }
