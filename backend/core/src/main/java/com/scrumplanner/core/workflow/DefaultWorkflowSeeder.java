@@ -56,9 +56,13 @@ public class DefaultWorkflowSeeder {
                 new WorkflowState(workflow.getId(), "Done", WorkflowStateCategory.done, 2, false)
         );
 
-        workflowTransitionRepository.save(new WorkflowTransition(workflow.getId(), toDo.getId(), inProgress.getId()));
-        workflowTransitionRepository.save(new WorkflowTransition(workflow.getId(), inProgress.getId(), done.getId()));
-        workflowTransitionRepository.save(new WorkflowTransition(workflow.getId(), inProgress.getId(), toDo.getId()));
-        workflowTransitionRepository.save(new WorkflowTransition(workflow.getId(), done.getId(), inProgress.getId()));
+        workflowTransitionRepository.save(
+                new WorkflowTransition(workflow.getId(), toDo.getId(), inProgress.getId(), "Start"));
+        workflowTransitionRepository.save(
+                new WorkflowTransition(workflow.getId(), inProgress.getId(), done.getId(), "Complete"));
+        workflowTransitionRepository.save(
+                new WorkflowTransition(workflow.getId(), inProgress.getId(), toDo.getId(), "Back to To Do"));
+        workflowTransitionRepository.save(
+                new WorkflowTransition(workflow.getId(), done.getId(), inProgress.getId(), "Reopen"));
     }
 }

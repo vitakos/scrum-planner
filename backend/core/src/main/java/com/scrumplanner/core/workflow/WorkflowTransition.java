@@ -33,14 +33,18 @@ public class WorkflowTransition {
     @Column(name = "to_state_id", nullable = false)
     private UUID toStateId;
 
+    @Column(nullable = false)
+    private String name;
+
     protected WorkflowTransition() {
         // JPA
     }
 
-    public WorkflowTransition(UUID workflowId, UUID fromStateId, UUID toStateId) {
+    public WorkflowTransition(UUID workflowId, UUID fromStateId, UUID toStateId, String name) {
         this.workflowId = workflowId;
         this.fromStateId = fromStateId;
         this.toStateId = toStateId;
+        this.name = name;
     }
 
     public UUID getId() {
@@ -57,5 +61,13 @@ public class WorkflowTransition {
 
     public UUID getToStateId() {
         return toStateId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void rename(String name) {
+        this.name = name;
     }
 }

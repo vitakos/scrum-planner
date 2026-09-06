@@ -51,6 +51,11 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload)
     }),
+  updateTransition: (projectId, workItemType, transitionId, payload) =>
+    request(`/api/projects/${projectId}/workflows/${workItemType}/transitions/${transitionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }),
   deleteTransition: (projectId, workItemType, transitionId) =>
     request(`/api/projects/${projectId}/workflows/${workItemType}/transitions/${transitionId}`, {
       method: 'DELETE'

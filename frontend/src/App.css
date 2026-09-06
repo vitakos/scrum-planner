@@ -259,3 +259,13 @@ textarea {
   align-items: center;
   margin: 12px 0 24px;
 }
+
+.inline-form-tight {
+  margin: 0;
+  flex: 1;
+}
+
+.transition-name {
+  font-weight: 600;
+  min-width: 90px;
+}

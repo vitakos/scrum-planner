@@ -43,7 +43,8 @@ handful of projects.
 | POST | `/api/projects/{id}/workflows/{workItemType}/states` | Add a state — `{ name, category }` (`category` is one of `to_do`, `in_progress`, `done`) |
 | PUT | `/api/projects/{id}/workflows/{workItemType}/states/{stateId}` | Rename a state / change its category |
 | DELETE | `/api/projects/{id}/workflows/{workItemType}/states/{stateId}` | Delete a state (rejected for the initial state, or one still used by a transition) |
-| POST | `/api/projects/{id}/workflows/{workItemType}/transitions` | Add a transition — `{ fromStateId, toStateId }` |
+| POST | `/api/projects/{id}/workflows/{workItemType}/transitions` | Add a transition — `{ name, fromStateId, toStateId }` (e.g. `{ "name": "Start", "fromStateId": ..., "toStateId": ... }`) |
+| PUT | `/api/projects/{id}/workflows/{workItemType}/transitions/{transitionId}` | Rename a transition — `{ name }` |
 | DELETE | `/api/projects/{id}/workflows/{workItemType}/transitions/{transitionId}` | Delete a transition |
 
 Errors are returned as JSON: `{ timestamp, status, error, message }`.

@@ -7,6 +7,7 @@ import com.scrumplanner.core.worktype.WorkItemTypeCatalogRepository;
 import com.scrumplanner.core.workflow.dto.CreateStateRequest;
 import com.scrumplanner.core.workflow.dto.CreateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.UpdateStateRequest;
+import com.scrumplanner.core.workflow.dto.UpdateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.WorkflowResponse;
 import com.scrumplanner.core.workflow.dto.WorkflowStateResponse;
 import com.scrumplanner.core.workflow.dto.WorkflowTransitionResponse;
@@ -108,20 +109,45 @@ public class WorkflowService {
                 workflow.getId(), request.fromStateId(), request.toStateId())) {
             throw new ConflictException("This transition already exists");
         }
+        requireTransitionNameAvailable(workflow.getId(), request.name().trim(), null);
 
         WorkflowTransition transition = workflowTransitionRepository.save(
-                new WorkflowTransition(workflow.getId(), request.fromStateId(), request.toStateId())
+                new WorkflowTransition(workflow.getId(), request.fromStateId(), request.toStateId(), request.name().trim())
         );
+        return WorkflowTransitionResponse.from(transition);
+    }
+
+    @Transactional
+    public WorkflowTransitionResponse updateTransition(
+            UUID projectId, String workItemType, UUID transitionId, UpdateTransitionRequest request
+    ) {
+        WorkflowDefinition workflow = requireWorkflow(projectId, workItemType);
+        WorkflowTransition transition = requireTransitionInWorkflow(workflow.getId(), transitionId);
+        requireTransitionNameAvailable(workflow.getId(), request.name().trim(), transitionId);
+
+        transition.rename(request.name().trim());
         return WorkflowTransitionResponse.from(transition);
     }
 
     @Transactional
     public void deleteTransition(UUID projectId, String workItemType, UUID transitionId) {
         WorkflowDefinition workflow = requireWorkflow(projectId, workItemType);
-        WorkflowTransition transition = workflowTransitionRepository.findById(transitionId)
-                .filter(t -> t.getWorkflowId().equals(workflow.getId()))
-                .orElseThrow(() -> new NotFoundException("Transition not found: " + transitionId));
+        WorkflowTransition transition = requireTransitionInWorkflow(workflow.getId(), transitionId);
         workflowTransitionRepository.delete(transition);
+    }
+
+    private WorkflowTransition requireTransitionInWorkflow(UUID workflowId, UUID transitionId) {
+        return workflowTransitionRepository.findById(transitionId)
+                .filter(t -> t.getWorkflowId().equals(workflowId))
+                .orElseThrow(() -> new NotFoundException("Transition not found in this workflow: " + transitionId));
+    }
+
+    private void requireTransitionNameAvailable(UUID workflowId, String name, UUID excludingTransitionId) {
+        boolean nameTaken = workflowTransitionRepository.findAllByWorkflowId(workflowId).stream()
+                .anyMatch(other -> !other.getId().equals(excludingTransitionId) && other.getName().equalsIgnoreCase(name));
+        if (nameTaken) {
+            throw new ConflictException("A transition named '" + name + "' already exists in this workflow");
+        }
     }
 
     private WorkflowResponse toResponse(WorkflowDefinition workflow, String typeName) {

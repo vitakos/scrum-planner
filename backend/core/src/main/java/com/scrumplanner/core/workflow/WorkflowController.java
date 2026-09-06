@@ -3,6 +3,7 @@ package com.scrumplanner.core.workflow;
 import com.scrumplanner.core.workflow.dto.CreateStateRequest;
 import com.scrumplanner.core.workflow.dto.CreateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.UpdateStateRequest;
+import com.scrumplanner.core.workflow.dto.UpdateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.WorkflowResponse;
 import com.scrumplanner.core.workflow.dto.WorkflowStateResponse;
 import com.scrumplanner.core.workflow.dto.WorkflowTransitionResponse;
@@ -74,6 +75,16 @@ public class WorkflowController {
             @Valid @RequestBody CreateTransitionRequest request
     ) {
         return workflowService.addTransition(projectId, workItemType, request);
+    }
+
+    @PutMapping("/{workItemType}/transitions/{transitionId}")
+    public WorkflowTransitionResponse updateTransition(
+            @PathVariable UUID projectId,
+            @PathVariable String workItemType,
+            @PathVariable UUID transitionId,
+            @Valid @RequestBody UpdateTransitionRequest request
+    ) {
+        return workflowService.updateTransition(projectId, workItemType, transitionId, request);
     }
 
     @DeleteMapping("/{workItemType}/transitions/{transitionId}")
