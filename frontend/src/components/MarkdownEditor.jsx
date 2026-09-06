@@ -9,6 +9,28 @@ const LINK_TRIGGER = /\$([A-Za-z0-9-]*)$/;
 const LINK_PATTERN = /\$([A-Za-z][A-Za-z0-9]*-\d+)\b/g;
 const MAX_SUGGESTIONS = 8;
 
+// The preview toggle button reuses EasyMDE's default "fa fa-eye" icon (its
+// action already toggles an "active" class on the button while previewing).
+// We only override the glyph while active, swapping the eye for a pencil so
+// the icon always signals what clicking it will do next: eye = "click to
+// preview", pencil = "click to edit". A plain unicode glyph is used (rather
+// than another fa- icon name) so it renders regardless of which Font Awesome
+// version/icon set the host page has loaded.
+let previewIconStylesInjected = false;
+function ensurePreviewIconStyles() {
+  if (previewIconStylesInjected || typeof document === 'undefined') return;
+  const style = document.createElement('style');
+  style.setAttribute('data-markdown-editor-preview-icon', 'true');
+  style.textContent = `
+    .markdown-editor-wrapper .editor-toolbar a.fa-eye.active::before {
+      content: "\\270E";
+      font-family: inherit;
+    }
+  `;
+  document.head.appendChild(style);
+  previewIconStylesInjected = true;
+}
+
 /**
  * A toolbar-driven rich editor over a plain Markdown textarea (EasyMDE).
  * The value passed in/out is always Markdown source text — never HTML —
@@ -19,6 +41,12 @@ const MAX_SUGGESTIONS = 8;
  * "$KEY". The preview renderer turns any "$KEY" reference into a link to
  * "/KEY" — App.jsx intercepts clicks on those to navigate within the app
  * (see its ITEM_LINK_PATH click handler) instead of reloading the page.
+ *
+ * Opens in preview (read) mode when there's existing content, since most of
+ * the time a field is opened to read it, not to change it; the toolbar's
+ * eye/pencil button switches between preview and edit. A field with no
+ * content yet opens in edit mode, since an empty preview gives the user
+ * nothing to look at and no obvious way to start typing.
  */
 export default function MarkdownEditor({ value, onChange, placeholder, disabled, items }) {
   const textareaRef = useRef(null);
@@ -35,6 +63,8 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled,
   }, [suggestions]);
 
   useEffect(() => {
+    ensurePreviewIconStyles();
+
     function updateSuggestions() {
       const cm = editorRef.current?.codemirror;
       const candidates = itemsRef.current;
@@ -104,6 +134,20 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled,
       }
     });
     editorRef.current = editor;
+
+    // Default to preview mode when there's already content to show; an
+    // empty field opens in edit mode instead (see doc comment above).
+    const previewButton = editor.toolbarElements?.preview;
+    if ((value ?? '').trim().length > 0) {
+      editor.togglePreview();
+    }
+    if (previewButton) {
+      const syncPreviewTitle = () => {
+        previewButton.title = editor.isPreviewActive() ? 'Edit' : 'Preview';
+      };
+      syncPreviewTitle();
+      previewButton.addEventListener('click', syncPreviewTitle);
+    }
 
     editor.codemirror.on('change', () => {
       onChangeRef.current?.(editor.value());
