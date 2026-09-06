@@ -65,7 +65,9 @@ public class WorkflowService {
 
         int nextSortOrder = workflowStateRepository.countByWorkflowId(workflow.getId());
         WorkflowState state = workflowStateRepository.save(
-                new WorkflowState(workflow.getId(), request.name().trim(), category, nextSortOrder, false)
+                new WorkflowState(
+                        workflow.getId(), request.name().trim(), category, nextSortOrder, false, normalizeColor(request.color())
+                )
         );
         return WorkflowStateResponse.from(state);
     }
@@ -82,7 +84,7 @@ public class WorkflowService {
             throw new ConflictException("A state named '" + request.name() + "' already exists in this workflow");
         }
 
-        state.update(request.name().trim(), category, state.getSortOrder());
+        state.update(request.name().trim(), category, state.getSortOrder(), normalizeColor(request.color()));
         return WorkflowStateResponse.from(state);
     }
 
@@ -116,7 +118,9 @@ public class WorkflowService {
                 workflow.getId(), request.fromStateId(), request.toStateId())) {
             throw new ConflictException("This transition already exists");
         }
-        requireTransitionNameAvailable(workflow.getId(), request.name().trim(), null);
+        // Transition names are labels for an action (e.g. "Close") and are allowed to repeat
+        // across different from/to pairs in the same workflow — only the from/to pair itself
+        // (checked above) needs to be unique.
 
         WorkflowTransition transition = workflowTransitionRepository.save(
                 new WorkflowTransition(workflow.getId(), request.fromStateId(), request.toStateId(), request.name().trim())
@@ -130,7 +134,6 @@ public class WorkflowService {
     ) {
         WorkflowDefinition workflow = requireWorkflow(projectId, workItemType);
         WorkflowTransition transition = requireTransitionInWorkflow(workflow.getId(), transitionId);
-        requireTransitionNameAvailable(workflow.getId(), request.name().trim(), transitionId);
 
         transition.rename(request.name().trim());
         return WorkflowTransitionResponse.from(transition);
@@ -143,18 +146,14 @@ public class WorkflowService {
         workflowTransitionRepository.delete(transition);
     }
 
+    private String normalizeColor(String color) {
+        return (color == null || color.isBlank()) ? null : color.trim();
+    }
+
     private WorkflowTransition requireTransitionInWorkflow(UUID workflowId, UUID transitionId) {
         return workflowTransitionRepository.findById(transitionId)
                 .filter(t -> t.getWorkflowId().equals(workflowId))
                 .orElseThrow(() -> new NotFoundException("Transition not found in this workflow: " + transitionId));
-    }
-
-    private void requireTransitionNameAvailable(UUID workflowId, String name, UUID excludingTransitionId) {
-        boolean nameTaken = workflowTransitionRepository.findAllByWorkflowId(workflowId).stream()
-                .anyMatch(other -> !other.getId().equals(excludingTransitionId) && other.getName().equalsIgnoreCase(name));
-        if (nameTaken) {
-            throw new ConflictException("A transition named '" + name + "' already exists in this workflow");
-        }
     }
 
     private WorkflowResponse toResponse(WorkflowDefinition workflow, String typeName) {

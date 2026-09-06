@@ -35,16 +35,31 @@ public class WorkflowState {
     @Column(name = "is_initial", nullable = false)
     private boolean initial;
 
+    /**
+     * Optional custom color (hex, e.g. "#a1b2c3"). Null means "use the
+     * default color for this state's category" — that default is resolved
+     * at the presentation layer (frontend), not stored here.
+     */
+    @Column
+    private String color;
+
     protected WorkflowState() {
         // JPA
     }
 
     public WorkflowState(UUID workflowId, String name, WorkflowStateCategory category, int sortOrder, boolean initial) {
+        this(workflowId, name, category, sortOrder, initial, null);
+    }
+
+    public WorkflowState(
+            UUID workflowId, String name, WorkflowStateCategory category, int sortOrder, boolean initial, String color
+    ) {
         this.workflowId = workflowId;
         this.name = name;
         this.category = category;
         this.sortOrder = sortOrder;
         this.initial = initial;
+        this.color = color;
     }
 
     public UUID getId() {
@@ -71,9 +86,14 @@ public class WorkflowState {
         return initial;
     }
 
-    public void update(String name, WorkflowStateCategory category, int sortOrder) {
+    public String getColor() {
+        return color;
+    }
+
+    public void update(String name, WorkflowStateCategory category, int sortOrder, String color) {
         this.name = name;
         this.category = category;
         this.sortOrder = sortOrder;
+        this.color = color;
     }
 }

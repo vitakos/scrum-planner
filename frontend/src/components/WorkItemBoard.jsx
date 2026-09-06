@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../services/api.js';
+import { resolveStateColor } from '../utils/stateColors.js';
 
 export default function WorkItemBoard({ projectId, workflow, items, onItemChanged, onItemDeleted }) {
   const [newTitle, setNewTitle] = useState('');
@@ -82,7 +83,7 @@ export default function WorkItemBoard({ projectId, workflow, items, onItemChange
         {states.map((state) => (
           <div key={state.id} className="board-column">
             <div className="board-column-header">
-              <span className={`category-dot category-${state.category}`} />
+              <span className="category-dot" style={{ backgroundColor: resolveStateColor(state) }} />
               {state.name}
               <span className="type-nav-count">{itemsByState[state.id]?.length ?? 0}</span>
             </div>

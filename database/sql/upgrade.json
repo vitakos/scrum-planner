@@ -19,6 +19,10 @@
     {
       "file": "0005_work_item_and_key.sql",
       "appliedAt": "2026-09-06T10:24:37.452Z"
+    },
+    {
+      "file": "0006_workflow_state_color.sql",
+      "appliedAt": "2026-09-06T11:47:37.791Z"
     }
   ]
 }

@@ -461,3 +461,62 @@ textarea {
   max-width: 720px;
   width: 100%;
 }
+
+/* Workflow editor tabs */
+.workflow-tab-nav {
+  margin: 12px 0 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.workflow-tab-panel h3:first-child {
+  margin-top: 0;
+}
+
+.workflow-diagram-wrapper {
+  margin-bottom: 20px;
+}
+
+.workflow-diagram {
+  overflow-x: auto;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.workflow-diagram svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+/* State color picker */
+.state-color-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  background: none;
+  flex-shrink: 0;
+}
+
+.state-color-input::-webkit-color-swatch-wrapper {
+  padding: 0;
+  border-radius: 50%;
+}
+
+.state-color-input::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
+
+.state-color-input::-moz-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
