@@ -3,8 +3,16 @@ name: scrum-planner
 # Local dev data storage: PostgreSQL (relational core) + MongoDB (flexible content).
 # See ../database/README.md for how the schema/migrations are tracked and applied.
 #
-# Data is bind-mounted to a host folder (DB_DATA_DIR) so it survives
-# `docker compose down` / container recreation.
+# Mongo's data is bind-mounted to a host folder (DB_DATA_DIR) so it's easy to
+# browse/back up and survives `docker compose down` / container recreation.
+#
+# Postgres's data lives in a named Docker volume (scrum-planner-postgres-data)
+# instead of a DB_DATA_DIR bind mount: Postgres's initdb needs to chmod its
+# data directory to 0700, which fails with "Operation not permitted" when
+# that directory is a Windows path mounted into WSL2 (/mnt/c/... does not
+# support Unix permission changes). A named volume avoids this entirely —
+# Docker manages the storage, and it still persists across container
+# recreation exactly like the Mongo bind mount does.
 
 services:
   postgres:
@@ -18,7 +26,7 @@ services:
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - ${DB_DATA_DIR:-C:/temp/scrum-planner-data}/postgres:/var/lib/postgresql/data
+      - scrum-planner-postgres-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-scrum_planner} -d ${POSTGRES_DB:-scrum_planner}"]
       interval: 5s
@@ -42,3 +50,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+volumes:
+  scrum-planner-postgres-data:
+    name: scrum-planner-postgres-data

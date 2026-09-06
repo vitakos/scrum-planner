@@ -79,14 +79,22 @@ node database/migrate.js --mongo-only
 
 ### Resetting local data
 
-The containers bind-mount their data directories to the host folder
-`DB_DATA_DIR` (see `infra/.env`, defaults to `C:\temp\scrum-planner-data`).
+- **Mongo** bind-mounts its data directory to the host folder `DB_DATA_DIR`
+  (see `infra/.env`, defaults to `C:\temp\scrum-planner-data`).
+- **Postgres** stores its data in a named Docker volume
+  (`scrum-planner-postgres-data`) instead of a `DB_DATA_DIR` bind mount —
+  Postgres's `initdb` needs to `chmod 0700` its data directory, which fails
+  with "Operation not permitted" on a Windows path mounted into WSL2. A named
+  volume sidesteps that and still persists across `docker compose down` /
+  container recreation just like the Mongo bind mount does.
+
 To start over completely:
 
 ```bash
 cd infra
 docker compose down
-# then delete the postgres/ and mongo/ subfolders under DB_DATA_DIR
+rm -rf "$DB_DATA_DIR/mongo"          # or delete the mongo/ subfolder under DB_DATA_DIR by hand
+docker volume rm scrum-planner-postgres-data
 docker compose up -d
 node ../database/migrate.js
 ```
