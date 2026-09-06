@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: scrum-planner-core
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scrum_planner}
+    username: ${SPRING_DATASOURCE_USERNAME:scrum_planner}
+    password: ${SPRING_DATASOURCE_PASSWORD:scrum_planner}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173}

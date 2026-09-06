@@ -1,7 +1,11 @@
 name: scrum-planner
 
-# Local dev data storage: PostgreSQL (relational core) + MongoDB (flexible content).
-# See ../database/README.md for how the schema/migrations are tracked and applied.
+# Local dev stack: PostgreSQL + MongoDB (data storage), backend/core (Spring
+# Boot API) and frontend (React, served by nginx once built).
+# See ../database/README.md for how the schema/migrations are tracked and
+# applied — migrations must be applied (node ../database/migrate.js) *before*
+# starting `backend`, since it validates its JPA mappings against the schema
+# on startup and won't create tables itself.
 #
 # Mongo's data is bind-mounted to a host folder (DB_DATA_DIR) so it's easy to
 # browse/back up and survives `docker compose down` / container recreation.
@@ -50,6 +54,34 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build:
+      context: ../backend/core
+    container_name: scrum-planner-backend
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-scrum_planner}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-scrum_planner}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-scrum_planner}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost:5173}
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8080}
+    container_name: scrum-planner-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      - backend
 
 volumes:
   scrum-planner-postgres-data:

@@ -70,6 +70,10 @@ Run this every time the containers are (re)created (e.g. after
 `docker compose down -v` or a fresh `docker compose up -d` on a clean data
 folder), and again whenever new migration files land (e.g. after `git pull`).
 
+Do this **before** starting `backend` (see [`../backend/core/README.md`](../backend/core/README.md)) —
+it validates its JPA mappings against the schema on startup and won't create
+tables itself.
+
 Flags:
 
 ```bash

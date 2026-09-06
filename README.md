@@ -137,24 +137,29 @@ npm install
 
 ### Running Locally
 
-**Data storage (PostgreSQL + MongoDB):**
+**1. Data storage (PostgreSQL + MongoDB):**
 ```bash
 cd infra
 cp .env.example .env      # first time only; adjust credentials/DB_DATA_DIR if needed
-docker compose up -d
+docker compose up -d postgres mongo
 node ../database/migrate.js   # applies pending schema/data migrations — see database/README.md
 ```
-Data is persisted to `DB_DATA_DIR` on the host (defaults to `C:\temp\scrum-planner-data`), so it
-survives container recreation. Re-run `node database/migrate.js` any time new migration files are
-added.
+Data is persisted to `DB_DATA_DIR` on the host (defaults to `C:\temp\scrum-planner-data`) and a
+named Docker volume for Postgres, so it survives container recreation. Re-run
+`node database/migrate.js` any time new migration files are added — **do this before starting
+`backend`**, since it validates its schema on startup rather than creating tables itself.
 
-**Full stack** (once backend/frontend have Dockerfiles):
+**2. Backend + frontend:**
 ```bash
-docker compose up
-# Brings up: backend (core + ai-gateway + ai-assistants), frontend, PostgreSQL, MongoDB
+docker compose up -d --build backend frontend
 ```
-> TODO: finalize the Docker Compose file once the backend modules and frontend have Dockerfiles —
-> for now `infra/docker-compose.yml` only defines the PostgreSQL/MongoDB data containers.
+Or bring up everything at once (`docker compose up -d --build`) once the data containers already
+have their migrations applied.
+
+- Backend API: http://localhost:8080/api (see [`backend/core/README.md`](backend/core/README.md))
+- Frontend: http://localhost:5173 — if there are no projects yet, it opens straight into the
+  first-project setup wizard (predefined work item types + a default workflow per type, editable
+  afterwards from the project configuration screen).
 
 ## Configuration
 Local PostgreSQL/MongoDB connection settings and the data folder location are configured via
@@ -170,7 +175,8 @@ Local PostgreSQL/MongoDB connection settings and the data folder location are co
 - [ ] Define data model for Projects, Teams, Users/Roles
 - [x] Define data model for artifacts (Epics, Features, User Stories, Tasks, Bugs, Test Cases, Test Runs) — see `docs/backlog-data-model.md`
 - [x] Local database environment: Docker Compose (PostgreSQL + MongoDB, persisted data) and migration tooling — see `database/README.md`
-- [ ] **MVP: minimal Project + Work Item CRUD + basic Workflow, usable to self-host this project's own backlog**
+- [x] First feature: project setup wizard — predefined work item types, default workflow per type, project configuration screen to edit states/transitions (`backend/core`, `frontend`)
+- [ ] **MVP: minimal Project + Work Item CRUD + basic Workflow, usable to self-host this project's own backlog** (work item CRUD still to do)
 - [ ] Migrate this roadmap into the application itself once the MVP is usable
 - [ ] Implement customizable workflow engine per artifact type
 - [ ] Implement custom fields and custom menu options
