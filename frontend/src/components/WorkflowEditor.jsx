@@ -13,14 +13,18 @@ export default function WorkflowEditor({ projectId, workflow, onChange }) {
   const [tab, setTab] = useState('states');
   const [newStateName, setNewStateName] = useState('');
   const [newStateCategory, setNewStateCategory] = useState('to_do');
+  const [newStateDescription, setNewStateDescription] = useState('');
   const [newTransitionName, setNewTransitionName] = useState('');
   const [newTransitionFrom, setNewTransitionFrom] = useState(workflow.states[0]?.id ?? '');
   const [newTransitionTo, setNewTransitionTo] = useState(workflow.states[1]?.id ?? workflow.states[0]?.id ?? '');
   const [editingTransitionId, setEditingTransitionId] = useState(null);
   const [editingTransitionName, setEditingTransitionName] = useState('');
+  const [editingDescriptionId, setEditingDescriptionId] = useState(null);
+  const [editingDescriptionText, setEditingDescriptionText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
+  const sortedStates = [...workflow.states].sort((a, b) => a.sortOrder - b.sortOrder);
   const stateNameById = Object.fromEntries(workflow.states.map((s) => [s.id, s.name]));
 
   async function run(action) {
@@ -41,10 +45,12 @@ export default function WorkflowEditor({ projectId, workflow, onChange }) {
     run(async () => {
       const created = await api.addState(projectId, workflow.workItemType, {
         name: newStateName.trim(),
-        category: newStateCategory
+        category: newStateCategory,
+        description: newStateDescription.trim() || null
       });
       onChange((w) => ({ ...w, states: [...w.states, created] }));
       setNewStateName('');
+      setNewStateDescription('');
     });
   }
 
@@ -64,12 +70,54 @@ export default function WorkflowEditor({ projectId, workflow, onChange }) {
       const updated = await api.updateState(projectId, workflow.workItemType, state.id, {
         name: state.name,
         category: state.category,
-        color
+        color,
+        description: state.description ?? null
       });
       onChange((w) => ({
         ...w,
         states: w.states.map((s) => (s.id === state.id ? updated : s))
       }));
+    });
+  }
+
+  function startEditDescription(state) {
+    setEditingDescriptionId(state.id);
+    setEditingDescriptionText(state.description ?? '');
+  }
+
+  function cancelEditDescription() {
+    setEditingDescriptionId(null);
+    setEditingDescriptionText('');
+  }
+
+  function saveEditDescription(e, state) {
+    e.preventDefault();
+    run(async () => {
+      const updated = await api.updateState(projectId, workflow.workItemType, state.id, {
+        name: state.name,
+        category: state.category,
+        color: state.color ?? null,
+        description: editingDescriptionText.trim() || null
+      });
+      onChange((w) => ({
+        ...w,
+        states: w.states.map((s) => (s.id === state.id ? updated : s))
+      }));
+      setEditingDescriptionId(null);
+      setEditingDescriptionText('');
+    });
+  }
+
+  function moveState(index, direction) {
+    const targetIndex = index + direction;
+    if (targetIndex < 0 || targetIndex >= sortedStates.length) return;
+    const reordered = [...sortedStates];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+    const stateIds = reordered.map((s) => s.id);
+    run(async () => {
+      const updated = await api.reorderStates(projectId, workflow.workItemType, stateIds);
+      onChange((w) => ({ ...w, states: updated }));
     });
   }
 
@@ -146,54 +194,116 @@ export default function WorkflowEditor({ projectId, workflow, onChange }) {
       {tab === 'states' && (
         <div className="workflow-tab-panel">
           <ul className="state-list">
-            {workflow.states.map((s) => (
-              <li key={s.id} className="state-row">
-                <input
-                  type="color"
-                  className="state-color-input"
-                  value={resolveStateColor(s)}
-                  disabled={busy}
-                  title="State color"
-                  onChange={(e) => handleColorChange(s, e.target.value)}
-                />
-                <span className="state-name">{s.name}</span>
-                <span className="field-hint">{CATEGORY_LABELS[s.category] ?? s.category}</span>
-                {s.initial && <span className="initial-badge">initial</span>}
-                {s.color && (
-                  <button className="link-button" disabled={busy} onClick={() => handleColorChange(s, null)}>
-                    Reset color
+            {sortedStates.map((s, index) => (
+              <li key={s.id} className="state-row-group">
+                <div className="state-row">
+                  <div className="state-reorder-controls">
+                    <button
+                      type="button"
+                      className="reorder-button"
+                      disabled={busy || index === 0}
+                      onClick={() => moveState(index, -1)}
+                      title="Move up"
+                      aria-label={`Move ${s.name} up`}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      className="reorder-button"
+                      disabled={busy || index === sortedStates.length - 1}
+                      onClick={() => moveState(index, 1)}
+                      title="Move down"
+                      aria-label={`Move ${s.name} down`}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  <input
+                    type="color"
+                    className="state-color-input"
+                    value={resolveStateColor(s)}
+                    disabled={busy}
+                    title="State color"
+                    onChange={(e) => handleColorChange(s, e.target.value)}
+                  />
+                  <span className="state-name">{s.name}</span>
+                  <span className="field-hint">{CATEGORY_LABELS[s.category] ?? s.category}</span>
+                  {s.initial && <span className="initial-badge">initial</span>}
+                  {s.color && (
+                    <button className="link-button" disabled={busy} onClick={() => handleColorChange(s, null)}>
+                      Reset color
+                    </button>
+                  )}
+                  {editingDescriptionId !== s.id && (
+                    <button className="link-button" disabled={busy} onClick={() => startEditDescription(s)}>
+                      {s.description ? 'Edit description' : 'Add description'}
+                    </button>
+                  )}
+                  <button
+                    className="link-button"
+                    disabled={busy || s.initial}
+                    onClick={() => handleDeleteState(s.id)}
+                    title={s.initial ? 'Cannot delete the initial state' : 'Delete state'}
+                  >
+                    Delete
                   </button>
+                </div>
+
+                {editingDescriptionId === s.id ? (
+                  <form onSubmit={(e) => saveEditDescription(e, s)} className="state-description-form">
+                    <textarea
+                      autoFocus
+                      rows={2}
+                      maxLength={2000}
+                      placeholder="Explain what this state means (entry/exit criteria, expectations…)"
+                      value={editingDescriptionText}
+                      onChange={(e) => setEditingDescriptionText(e.target.value)}
+                    />
+                    <div className="state-description-actions">
+                      <button type="submit" disabled={busy}>
+                        Save
+                      </button>
+                      <button type="button" disabled={busy} onClick={cancelEditDescription}>
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  s.description && <p className="state-description">{s.description}</p>
                 )}
-                <button
-                  className="link-button"
-                  disabled={busy || s.initial}
-                  onClick={() => handleDeleteState(s.id)}
-                  title={s.initial ? 'Cannot delete the initial state' : 'Delete state'}
-                >
-                  Delete
-                </button>
               </li>
             ))}
           </ul>
 
-          <form onSubmit={handleAddState} className="inline-form">
-            <input
-              type="text"
-              placeholder="New state name"
-              value={newStateName}
-              onChange={(e) => setNewStateName(e.target.value)}
-              maxLength={100}
+          <form onSubmit={handleAddState} className="state-add-form">
+            <div className="inline-form">
+              <input
+                type="text"
+                placeholder="New state name"
+                value={newStateName}
+                onChange={(e) => setNewStateName(e.target.value)}
+                maxLength={100}
+              />
+              <select value={newStateCategory} onChange={(e) => setNewStateCategory(e.target.value)}>
+                {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <button type="submit" disabled={busy}>
+                Add state
+              </button>
+            </div>
+            <textarea
+              rows={2}
+              maxLength={2000}
+              placeholder="Description (optional)"
+              value={newStateDescription}
+              onChange={(e) => setNewStateDescription(e.target.value)}
+              className="state-add-description"
             />
-            <select value={newStateCategory} onChange={(e) => setNewStateCategory(e.target.value)}>
-              {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <button type="submit" disabled={busy}>
-              Add state
-            </button>
           </form>
         </div>
       )}

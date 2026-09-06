@@ -1,6 +1,7 @@
 package com.scrumplanner.core.workflow;
 
 import com.scrumplanner.core.workflow.dto.CreateStateRequest;
+import com.scrumplanner.core.workflow.dto.ReorderStatesRequest;
 import com.scrumplanner.core.workflow.dto.CreateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.UpdateStateRequest;
 import com.scrumplanner.core.workflow.dto.UpdateTransitionRequest;
@@ -55,6 +56,15 @@ public class WorkflowController {
             @Valid @RequestBody UpdateStateRequest request
     ) {
         return workflowService.updateState(projectId, workItemType, stateId, request);
+    }
+
+    @PutMapping("/{workItemType}/states/reorder")
+    public List<WorkflowStateResponse> reorderStates(
+            @PathVariable UUID projectId,
+            @PathVariable String workItemType,
+            @Valid @RequestBody ReorderStatesRequest request
+    ) {
+        return workflowService.reorderStates(projectId, workItemType, request);
     }
 
     @DeleteMapping("/{workItemType}/states/{stateId}")

@@ -8,6 +8,8 @@ export default function BacklogPage({ project }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeType, setActiveType] = useState(null);
+  const [parentFilter, setParentFilter] = useState(null);
+  const [presetParentId, setPresetParentId] = useState(null);
 
   useEffect(() => {
     loadAll();
@@ -43,11 +45,31 @@ export default function BacklogPage({ project }) {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
 
+  function selectType(type) {
+    setActiveType(type);
+    setParentFilter(null);
+    setPresetParentId(null);
+  }
+
+  function handleAddChild(item, childType) {
+    setActiveType(childType);
+    setPresetParentId(item.id);
+    setParentFilter(null);
+  }
+
+  function handleDrillDown(item, childType) {
+    setActiveType(childType);
+    setParentFilter({ id: item.id, key: item.key, title: item.title });
+    setPresetParentId(null);
+  }
+
   if (loading) return <p className="page-center">Loading backlog…</p>;
   if (error) return <p className="error-banner">{error}</p>;
 
   const activeWorkflow = workflows.find((w) => w.workItemType === activeType);
-  const itemsForType = items.filter((i) => i.type === activeType);
+  const itemsForType = items.filter(
+    (i) => i.type === activeType && (!parentFilter || i.parentId === parentFilter.id)
+  );
 
   return (
     <div className="configure-page">
@@ -57,7 +79,7 @@ export default function BacklogPage({ project }) {
             <button
               key={w.workItemType}
               className={w.workItemType === activeType ? 'type-nav-item active' : 'type-nav-item'}
-              onClick={() => setActiveType(w.workItemType)}
+              onClick={() => selectType(w.workItemType)}
             >
               {w.workItemTypeName}
               <span className="type-nav-count">{items.filter((i) => i.type === w.workItemType).length}</span>
@@ -66,15 +88,28 @@ export default function BacklogPage({ project }) {
         </nav>
 
         <section className="workflow-panel">
+          {parentFilter && (
+            <div className="filter-banner">
+              Showing children of <strong>{parentFilter.key}</strong> — {parentFilter.title}
+              <button type="button" className="link-button" onClick={() => setParentFilter(null)}>
+                Clear filter
+              </button>
+            </div>
+          )}
+
           {activeWorkflow ? (
             <WorkItemBoard
               key={activeWorkflow.workItemType}
               projectId={project.id}
               workflow={activeWorkflow}
+              workflows={workflows}
               items={itemsForType}
               allItems={items}
+              presetParentId={presetParentId}
               onItemChanged={upsertItem}
               onItemDeleted={removeItem}
+              onAddChild={handleAddChild}
+              onDrillDown={handleDrillDown}
             />
           ) : (
             <p>No work item types configured for this project.</p>

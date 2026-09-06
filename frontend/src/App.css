@@ -238,13 +238,78 @@ textarea {
   margin-bottom: 12px;
 }
 
+.state-row-group {
+  border-bottom: 1px solid var(--bg-subtle);
+  padding: 6px 0;
+}
+
 .state-row,
 .transition-row {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.transition-row {
   padding: 6px 0;
   border-bottom: 1px solid var(--bg-subtle);
+}
+
+.state-reorder-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.reorder-button {
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+
+.reorder-button:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.state-description {
+  margin: 4px 0 0 46px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.state-description-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 0 0 46px;
+}
+
+.state-description-form textarea {
+  font-family: inherit;
+  resize: vertical;
+}
+
+.state-description-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.state-add-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 12px 0 24px;
+}
+
+.state-add-description {
+  font-family: inherit;
+  resize: vertical;
 }
 
 .state-name {
@@ -389,6 +454,33 @@ textarea {
   width: 100%;
   margin-bottom: 8px;
   font-size: 0.8rem;
+}
+
+.board-card-hierarchy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.link-button-add {
+  border: none;
+  background: none;
+  color: var(--accent, #2563eb);
+  padding: 0;
+  font-size: 0.75rem;
+}
+
+.filter-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-subtle);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
 }
 
 /* Project menu */

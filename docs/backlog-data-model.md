@@ -76,7 +76,7 @@ This table is also the source for the metrics already planned in the Features li
 ## Workflow model (PostgreSQL)
 
 - `workflow_definition`: `id`, `project_id`, `work_item_type` — one workflow per artifact type per project.
-- `workflow_state`: `id`, `workflow_id`, `name`, `category` (To Do / In Progress / Done).
+- `workflow_state`: `id`, `workflow_id`, `name`, `category` (To Do / In Progress / Done), `sort_order` (display/board-column order, reorderable from project configuration), `is_initial`, `color`, `description` (optional, admin-facing explanation of the state).
 - `workflow_transition`: `id`, `workflow_id`, `from_state_id`, `to_state_id`, `allowed_roles`.
 
 `work_item.state_id` references `workflow_state`; a transition is only allowed if it exists in `workflow_transition` for that item's workflow.

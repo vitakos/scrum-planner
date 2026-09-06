@@ -43,6 +43,9 @@ public class WorkflowState {
     @Column
     private String color;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
     protected WorkflowState() {
         // JPA
     }
@@ -54,12 +57,20 @@ public class WorkflowState {
     public WorkflowState(
             UUID workflowId, String name, WorkflowStateCategory category, int sortOrder, boolean initial, String color
     ) {
+        this(workflowId, name, category, sortOrder, initial, color, null);
+    }
+
+    public WorkflowState(
+            UUID workflowId, String name, WorkflowStateCategory category, int sortOrder, boolean initial,
+            String color, String description
+    ) {
         this.workflowId = workflowId;
         this.name = name;
         this.category = category;
         this.sortOrder = sortOrder;
         this.initial = initial;
         this.color = color;
+        this.description = description;
     }
 
     public UUID getId() {
@@ -90,10 +101,19 @@ public class WorkflowState {
         return color;
     }
 
-    public void update(String name, WorkflowStateCategory category, int sortOrder, String color) {
+    public String getDescription() {
+        return description;
+    }
+
+    public void update(String name, WorkflowStateCategory category, int sortOrder, String color, String description) {
         this.name = name;
         this.category = category;
         this.sortOrder = sortOrder;
         this.color = color;
+        this.description = description;
+    }
+
+    public void reorder(int sortOrder) {
+        this.sortOrder = sortOrder;
     }
 }

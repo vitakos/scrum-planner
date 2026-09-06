@@ -1,29 +1,28 @@
 import { useState } from 'react';
 import { api } from '../services/api.js';
 import { resolveStateColor } from '../utils/stateColors.js';
-
-// The "natural" parent type(s) for each work item type, per the standard
-// hierarchy: Epic -> Feature -> User Story -> Task/Bug -> Test Case -> Test
-// Run. Epic has no natural parent. A type not listed here (e.g. a future
-// custom type) simply gets no parent picker.
-const NATURAL_PARENT_TYPES = {
-  feature: ['epic'],
-  user_story: ['feature'],
-  task: ['user_story'],
-  bug: ['user_story'],
-  test_case: ['task', 'bug'],
-  test_run: ['test_case']
-};
+import { parentTypesFor, childTypesFor } from '../utils/workItemHierarchy.js';
 
 function parentCandidatesFor(type, allItems) {
-  const parentTypes = NATURAL_PARENT_TYPES[type];
-  if (!parentTypes) return [];
+  const parentTypes = parentTypesFor(type);
+  if (parentTypes.length === 0) return [];
   return allItems.filter((i) => parentTypes.includes(i.type));
 }
 
-export default function WorkItemBoard({ projectId, workflow, items, allItems, onItemChanged, onItemDeleted }) {
+export default function WorkItemBoard({
+  projectId,
+  workflow,
+  workflows,
+  items,
+  allItems,
+  presetParentId,
+  onItemChanged,
+  onItemDeleted,
+  onAddChild,
+  onDrillDown
+}) {
   const [newTitle, setNewTitle] = useState('');
-  const [newParentId, setNewParentId] = useState('');
+  const [newParentId, setNewParentId] = useState(presetParentId ?? '');
   const [busyId, setBusyId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
@@ -35,6 +34,8 @@ export default function WorkItemBoard({ projectId, workflow, items, allItems, on
   }
 
   const parentCandidates = parentCandidatesFor(workflow.workItemType, allItems ?? []);
+  const typeNameByCode = Object.fromEntries((workflows ?? []).map((w) => [w.workItemType, w.workItemTypeName]));
+  const configuredTypes = new Set((workflows ?? []).map((w) => w.workItemType));
 
   async function handleCreate(e) {
     e.preventDefault();
@@ -142,56 +143,82 @@ export default function WorkItemBoard({ projectId, workflow, items, allItems, on
               <span className="type-nav-count">{itemsByState[state.id]?.length ?? 0}</span>
             </div>
             <div className="board-column-body">
-              {(itemsByState[state.id] ?? []).map((item) => (
-                <div key={item.id} className="board-card">
-                  <div className="board-card-key">{item.key}</div>
-                  <div className="board-card-title">{item.title}</div>
-                  {item.parentKey && (
-                    <div className="board-card-parent">
-                      Parent: {item.parentKey} — {item.parentTitle}
-                    </div>
-                  )}
-                  {item.childCount > 0 && (
-                    <div className="board-card-children">
-                      {item.childCount} {item.childCount === 1 ? 'child item' : 'child items'}
-                    </div>
-                  )}
-                  {parentCandidates.length > 0 && (
-                    <select
-                      value={item.parentId ?? ''}
-                      disabled={busyId === item.id}
-                      onChange={(e) => handleReparent(item, e.target.value)}
-                      className="parent-select parent-select-card"
-                    >
-                      <option value="">No parent</option>
-                      {parentCandidates.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.key} — {p.title}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                  <div className="board-card-actions">
-                    {item.availableTransitions.map((t) => (
-                      <button
-                        key={t.id}
+              {(itemsByState[state.id] ?? []).map((item) => {
+                const childTypes = childTypesFor(item.type).filter((ct) => configuredTypes.has(ct));
+                return (
+                  <div key={item.id} className="board-card">
+                    <div className="board-card-key">{item.key}</div>
+                    <div className="board-card-title">{item.title}</div>
+                    {item.parentKey && (
+                      <div className="board-card-parent">
+                        Parent: {item.parentKey} — {item.parentTitle}
+                      </div>
+                    )}
+                    {parentCandidates.length > 0 && (
+                      <select
+                        value={item.parentId ?? ''}
                         disabled={busyId === item.id}
-                        onClick={() => handleMove(item, t.id)}
-                        title={`Move to ${t.toStateName}`}
+                        onChange={(e) => handleReparent(item, e.target.value)}
+                        className="parent-select parent-select-card"
                       >
-                        {t.name}
+                        <option value="">No parent</option>
+                        {parentCandidates.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.key} — {p.title}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    {(childTypes.length > 0 || item.childCount > 0) && (
+                      <div className="board-card-hierarchy">
+                        {item.childCount > 0 && childTypes.length > 0 && (
+                          <button
+                            type="button"
+                            className="link-button"
+                            onClick={() => onDrillDown(item, childTypes[0])}
+                          >
+                            View {item.childCount} {item.childCount === 1 ? 'child' : 'children'}
+                          </button>
+                        )}
+                        {item.childCount > 0 && childTypes.length === 0 && (
+                          <span className="board-card-children">
+                            {item.childCount} {item.childCount === 1 ? 'child item' : 'child items'}
+                          </span>
+                        )}
+                        {childTypes.map((ct) => (
+                          <button
+                            key={ct}
+                            type="button"
+                            className="link-button-add"
+                            onClick={() => onAddChild(item, ct)}
+                          >
+                            + Add {(typeNameByCode[ct] ?? ct).toLowerCase()}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="board-card-actions">
+                      {item.availableTransitions.map((t) => (
+                        <button
+                          key={t.id}
+                          disabled={busyId === item.id}
+                          onClick={() => handleMove(item, t.id)}
+                          title={`Move to ${t.toStateName}`}
+                        >
+                          {t.name}
+                        </button>
+                      ))}
+                      <button
+                        className="link-button"
+                        disabled={busyId === item.id}
+                        onClick={() => handleDelete(item)}
+                      >
+                        Delete
                       </button>
-                    ))}
-                    <button
-                      className="link-button"
-                      disabled={busyId === item.id}
-                      onClick={() => handleDelete(item)}
-                    >
-                      Delete
-                    </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}

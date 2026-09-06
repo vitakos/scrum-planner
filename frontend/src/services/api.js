@@ -46,6 +46,11 @@ export const api = {
     request(`/api/projects/${projectId}/workflows/${workItemType}/states/${stateId}`, {
       method: 'DELETE'
     }),
+  reorderStates: (projectId, workItemType, stateIds) =>
+    request(`/api/projects/${projectId}/workflows/${workItemType}/states/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ stateIds })
+    }),
 
   addTransition: (projectId, workItemType, payload) =>
     request(`/api/projects/${projectId}/workflows/${workItemType}/transitions`, {

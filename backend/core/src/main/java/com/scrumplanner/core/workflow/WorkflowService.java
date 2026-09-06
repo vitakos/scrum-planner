@@ -6,6 +6,7 @@ import com.scrumplanner.core.worktype.WorkItemTypeCatalog;
 import com.scrumplanner.core.worktype.WorkItemTypeCatalogRepository;
 import com.scrumplanner.core.workitem.WorkItemRepository;
 import com.scrumplanner.core.workflow.dto.CreateStateRequest;
+import com.scrumplanner.core.workflow.dto.ReorderStatesRequest;
 import com.scrumplanner.core.workflow.dto.CreateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.UpdateStateRequest;
 import com.scrumplanner.core.workflow.dto.UpdateTransitionRequest;
@@ -16,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -66,7 +69,8 @@ public class WorkflowService {
         int nextSortOrder = workflowStateRepository.countByWorkflowId(workflow.getId());
         WorkflowState state = workflowStateRepository.save(
                 new WorkflowState(
-                        workflow.getId(), request.name().trim(), category, nextSortOrder, false, normalizeColor(request.color())
+                        workflow.getId(), request.name().trim(), category, nextSortOrder, false,
+                        normalizeColor(request.color()), normalizeDescription(request.description())
                 )
         );
         return WorkflowStateResponse.from(state);
@@ -84,8 +88,38 @@ public class WorkflowService {
             throw new ConflictException("A state named '" + request.name() + "' already exists in this workflow");
         }
 
-        state.update(request.name().trim(), category, state.getSortOrder(), normalizeColor(request.color()));
+        state.update(
+                request.name().trim(), category, state.getSortOrder(), normalizeColor(request.color()),
+                normalizeDescription(request.description())
+        );
         return WorkflowStateResponse.from(state);
+    }
+
+    @Transactional
+    public List<WorkflowStateResponse> reorderStates(UUID projectId, String workItemType, ReorderStatesRequest request) {
+        WorkflowDefinition workflow = requireWorkflow(projectId, workItemType);
+        List<WorkflowState> states = workflowStateRepository.findAllByWorkflowIdOrderBySortOrderAsc(workflow.getId());
+
+        List<UUID> requestedIds = request.stateIds();
+        Set<UUID> requestedSet = new HashSet<>(requestedIds);
+        Set<UUID> currentIds = states.stream().map(WorkflowState::getId).collect(Collectors.toSet());
+
+        if (requestedIds.size() != requestedSet.size()) {
+            throw new IllegalArgumentException("stateIds must not contain duplicates");
+        }
+        if (!requestedSet.equals(currentIds)) {
+            throw new IllegalArgumentException("stateIds must contain exactly the workflow's current states");
+        }
+
+        Map<UUID, WorkflowState> stateById = states.stream()
+                .collect(Collectors.toMap(WorkflowState::getId, s -> s));
+        for (int i = 0; i < requestedIds.size(); i++) {
+            stateById.get(requestedIds.get(i)).reorder(i);
+        }
+
+        return workflowStateRepository.findAllByWorkflowIdOrderBySortOrderAsc(workflow.getId()).stream()
+                .map(WorkflowStateResponse::from)
+                .toList();
     }
 
     @Transactional
@@ -148,6 +182,10 @@ public class WorkflowService {
 
     private String normalizeColor(String color) {
         return (color == null || color.isBlank()) ? null : color.trim();
+    }
+
+    private String normalizeDescription(String description) {
+        return (description == null || description.isBlank()) ? null : description.trim();
     }
 
     private WorkflowTransition requireTransitionInWorkflow(UUID workflowId, UUID transitionId) {
