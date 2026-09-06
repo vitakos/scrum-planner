@@ -1,3 +1,16 @@
 {
-  "applied": []
+  "applied": [
+    {
+      "file": "0001_init_schema.sql",
+      "appliedAt": "2026-09-06T09:50:49.389Z"
+    },
+    {
+      "file": "0002_flexible_work_item_types.sql",
+      "appliedAt": "2026-09-06T09:50:51.109Z"
+    },
+    {
+      "file": "0003_workflow_state_ordering.sql",
+      "appliedAt": "2026-09-06T09:50:52.643Z"
+    }
+  ]
 }
