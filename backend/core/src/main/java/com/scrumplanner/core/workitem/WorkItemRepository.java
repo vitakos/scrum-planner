@@ -10,5 +10,9 @@ public interface WorkItemRepository extends JpaRepository<WorkItem, UUID> {
 
     List<WorkItem> findAllByProjectIdAndTypeOrderBySeqAsc(UUID projectId, String type);
 
+    List<WorkItem> findAllByParentId(UUID parentId);
+
+    int countByParentId(UUID parentId);
+
     boolean existsByStateId(UUID stateId);
 }

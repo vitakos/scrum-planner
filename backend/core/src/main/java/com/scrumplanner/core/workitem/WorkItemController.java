@@ -2,7 +2,7 @@ package com.scrumplanner.core.workitem;
 
 import com.scrumplanner.core.workitem.dto.ApplyTransitionRequest;
 import com.scrumplanner.core.workitem.dto.CreateWorkItemRequest;
-import com.scrumplanner.core.workitem.dto.UpdateWorkItemTitleRequest;
+import com.scrumplanner.core.workitem.dto.UpdateWorkItemRequest;
 import com.scrumplanner.core.workitem.dto.WorkItemResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -50,12 +50,12 @@ public class WorkItemController {
     }
 
     @PutMapping("/{id}")
-    public WorkItemResponse updateTitle(
+    public WorkItemResponse update(
             @PathVariable UUID projectId,
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateWorkItemTitleRequest request
+            @Valid @RequestBody UpdateWorkItemRequest request
     ) {
-        return workItemService.updateTitle(projectId, id, request);
+        return workItemService.updateWorkItem(projectId, id, request);
     }
 
     @PostMapping("/{id}/transitions")

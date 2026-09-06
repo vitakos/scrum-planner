@@ -14,6 +14,10 @@ public record WorkItemResponse(
         UUID stateId,
         String stateName,
         String stateCategory,
+        UUID parentId,
+        String parentKey,
+        String parentTitle,
+        int childCount,
         List<AvailableTransitionResponse> availableTransitions,
         OffsetDateTime createdAt,
         OffsetDateTime updatedAt

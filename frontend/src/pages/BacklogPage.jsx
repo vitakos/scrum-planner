@@ -72,6 +72,7 @@ export default function BacklogPage({ project }) {
               projectId={project.id}
               workflow={activeWorkflow}
               items={itemsForType}
+              allItems={items}
               onItemChanged={upsertItem}
               onItemDeleted={removeItem}
             />

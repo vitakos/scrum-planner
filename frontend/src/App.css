@@ -369,6 +369,28 @@ textarea {
   font-size: 0.8rem;
 }
 
+.board-card-parent {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.board-card-children {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.parent-select {
+  max-width: 220px;
+}
+
+.parent-select-card {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+}
+
 /* Project menu */
 .project-menu {
   position: relative;

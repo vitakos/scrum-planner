@@ -13,7 +13,7 @@ import com.scrumplanner.core.workflow.WorkflowTransitionRepository;
 import com.scrumplanner.core.workitem.dto.ApplyTransitionRequest;
 import com.scrumplanner.core.workitem.dto.AvailableTransitionResponse;
 import com.scrumplanner.core.workitem.dto.CreateWorkItemRequest;
-import com.scrumplanner.core.workitem.dto.UpdateWorkItemTitleRequest;
+import com.scrumplanner.core.workitem.dto.UpdateWorkItemRequest;
 import com.scrumplanner.core.workitem.dto.WorkItemResponse;
 import com.scrumplanner.core.worktype.WorkItemTypeCatalogRepository;
 import org.springframework.stereotype.Service;
@@ -65,11 +65,16 @@ public class WorkItemService {
                 .orElseThrow(() -> new ConflictException(
                         "Work item type '" + request.type() + "' has no initial state configured"));
 
+        UUID parentId = request.parentId();
+        if (parentId != null) {
+            requireValidParent(projectId, parentId, null);
+        }
+
         int seq = project.nextWorkItemSeq();
         projectRepository.save(project);
 
         WorkItem item = workItemRepository.save(
-                new WorkItem(projectId, request.type(), request.title().trim(), initialState.getId(), seq)
+                new WorkItem(projectId, request.type(), request.title().trim(), initialState.getId(), seq, parentId)
         );
         return toResponse(item, project.getKey(), context);
     }
@@ -99,10 +104,18 @@ public class WorkItemService {
     }
 
     @Transactional
-    public WorkItemResponse updateTitle(UUID projectId, UUID workItemId, UpdateWorkItemTitleRequest request) {
+    public WorkItemResponse updateWorkItem(UUID projectId, UUID workItemId, UpdateWorkItemRequest request) {
         Project project = requireProject(projectId);
         WorkItem item = requireWorkItem(projectId, workItemId);
+
         item.rename(request.title().trim());
+
+        UUID parentId = request.parentId();
+        if (parentId != null) {
+            requireValidParent(projectId, parentId, workItemId);
+        }
+        item.reparent(parentId);
+
         return toResponse(item, project.getKey(), loadContext(projectId, item.getType()));
     }
 
@@ -134,6 +147,38 @@ public class WorkItemService {
         workItemRepository.delete(item);
     }
 
+    /**
+     * A parent must exist, belong to the same project, and (for an update on
+     * an existing item) not be the item itself or a descendant of it — since
+     * either would create a cycle in the hierarchy.
+     */
+    private void requireValidParent(UUID projectId, UUID parentId, UUID workItemId) {
+        if (workItemId != null && parentId.equals(workItemId)) {
+            throw new ConflictException("A work item can't be its own parent");
+        }
+
+        WorkItem parent = workItemRepository.findById(parentId)
+                .orElseThrow(() -> new NotFoundException("Parent work item not found: " + parentId));
+
+        if (!parent.getProjectId().equals(projectId)) {
+            throw new ConflictException("Parent work item must belong to the same project");
+        }
+
+        if (workItemId == null) {
+            return;
+        }
+
+        UUID ancestorId = parent.getParentId();
+        while (ancestorId != null) {
+            if (ancestorId.equals(workItemId)) {
+                throw new ConflictException("Setting this parent would create a cycle in the work item hierarchy");
+            }
+            ancestorId = workItemRepository.findById(ancestorId)
+                    .map(WorkItem::getParentId)
+                    .orElse(null);
+        }
+    }
+
     private WorkItemResponse toResponse(WorkItem item, String projectKey, TypeWorkflowContext context) {
         WorkflowState state = context.statesById().get(item.getStateId());
         List<AvailableTransitionResponse> available = context.transitions().stream()
@@ -145,6 +190,17 @@ public class WorkItemService {
                 })
                 .toList();
 
+        String parentKey = null;
+        String parentTitle = null;
+        if (item.getParentId() != null) {
+            WorkItem parent = workItemRepository.findById(item.getParentId()).orElse(null);
+            if (parent != null) {
+                parentKey = projectKey + "-" + parent.getSeq();
+                parentTitle = parent.getTitle();
+            }
+        }
+        int childCount = workItemRepository.countByParentId(item.getId());
+
         return new WorkItemResponse(
                 item.getId(),
                 projectKey + "-" + item.getSeq(),
@@ -155,6 +211,10 @@ public class WorkItemService {
                 item.getStateId(),
                 state != null ? state.getName() : "?",
                 state != null ? state.getCategory().name() : "?",
+                item.getParentId(),
+                parentKey,
+                parentTitle,
+                childCount,
                 available,
                 item.getCreatedAt(),
                 item.getUpdatedAt()

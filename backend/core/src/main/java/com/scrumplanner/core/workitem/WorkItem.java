@@ -11,12 +11,13 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Note: the underlying work_item table also has parent_id, assignee_id,
- * reporter_id, sprint_id and content_ref columns for hierarchy, people,
- * sprints and the MongoDB-backed description/content document — all still
- * to come. They're intentionally left unmapped here (all nullable in the
- * DB); Hibernate's schema validation only checks the columns an entity
- * declares, so this is safe to extend later without a migration.
+ * Note: the underlying work_item table also has assignee_id, reporter_id,
+ * sprint_id and content_ref columns for people, sprints and the
+ * MongoDB-backed description/content document — still to come. They're
+ * intentionally left unmapped here (all nullable in the DB); Hibernate's
+ * schema validation only checks the columns an entity declares, so this is
+ * safe to extend later without a migration. parent_id (hierarchy) is now
+ * mapped below.
  */
 @Entity
 @Table(name = "work_item")
@@ -38,6 +39,9 @@ public class WorkItem {
     @Column(name = "state_id", nullable = false)
     private UUID stateId;
 
+    @Column(name = "parent_id")
+    private UUID parentId;
+
     @Column(nullable = false)
     private int seq;
 
@@ -52,11 +56,16 @@ public class WorkItem {
     }
 
     public WorkItem(UUID projectId, String type, String title, UUID stateId, int seq) {
+        this(projectId, type, title, stateId, seq, null);
+    }
+
+    public WorkItem(UUID projectId, String type, String title, UUID stateId, int seq, UUID parentId) {
         this.projectId = projectId;
         this.type = type;
         this.title = title;
         this.stateId = stateId;
         this.seq = seq;
+        this.parentId = parentId;
         OffsetDateTime now = OffsetDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
@@ -82,6 +91,10 @@ public class WorkItem {
         return stateId;
     }
 
+    public UUID getParentId() {
+        return parentId;
+    }
+
     public int getSeq() {
         return seq;
     }
@@ -101,6 +114,11 @@ public class WorkItem {
 
     public void moveToState(UUID stateId) {
         this.stateId = stateId;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
+    public void reparent(UUID parentId) {
+        this.parentId = parentId;
         this.updatedAt = OffsetDateTime.now();
     }
 }

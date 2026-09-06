@@ -66,7 +66,7 @@ export const api = {
     request(`/api/projects/${projectId}/work-items${type ? `?type=${encodeURIComponent(type)}` : ''}`),
   createWorkItem: (projectId, payload) =>
     request(`/api/projects/${projectId}/work-items`, { method: 'POST', body: JSON.stringify(payload) }),
-  updateWorkItemTitle: (projectId, workItemId, payload) =>
+  updateWorkItem: (projectId, workItemId, payload) =>
     request(`/api/projects/${projectId}/work-items/${workItemId}`, {
       method: 'PUT',
       body: JSON.stringify(payload)
