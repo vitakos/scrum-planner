@@ -23,6 +23,14 @@
     {
       "file": "0006_workflow_state_color.sql",
       "appliedAt": "2026-09-06T11:47:37.791Z"
+    },
+    {
+      "file": "0007_workflow_state_description.sql",
+      "appliedAt": "2026-09-06T12:44:48.447Z"
+    },
+    {
+      "file": "0008_custom_field_definition_data_type_check.sql",
+      "appliedAt": "2026-09-06T12:54:18.952Z"
     }
   ]
 }

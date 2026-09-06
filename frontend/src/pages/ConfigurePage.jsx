@@ -1,25 +1,32 @@
 import { useEffect, useState } from 'react';
 import { api } from '../services/api.js';
 import WorkflowEditor from '../components/WorkflowEditor.jsx';
+import CustomFieldsEditor from '../components/CustomFieldsEditor.jsx';
 
 export default function ConfigurePage({ project }) {
   const [workflows, setWorkflows] = useState([]);
+  const [fieldCatalogs, setFieldCatalogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeType, setActiveType] = useState(null);
+  const [section, setSection] = useState('workflow');
 
   useEffect(() => {
-    loadWorkflows();
+    loadConfiguration();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
 
-  async function loadWorkflows() {
+  async function loadConfiguration() {
     setLoading(true);
     setError(null);
     try {
-      const data = await api.listWorkflows(project.id);
-      setWorkflows(data);
-      setActiveType((current) => current ?? data[0]?.workItemType ?? null);
+      const [workflowData, fieldData] = await Promise.all([
+        api.listWorkflows(project.id),
+        api.listCustomFields(project.id)
+      ]);
+      setWorkflows(workflowData);
+      setFieldCatalogs(fieldData);
+      setActiveType((current) => current ?? workflowData[0]?.workItemType ?? null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -33,10 +40,17 @@ export default function ConfigurePage({ project }) {
     );
   }
 
-  if (loading) return <p className="page-center">Loading workflows…</p>;
+  function updateFieldCatalog(workItemType, updater) {
+    setFieldCatalogs((prev) =>
+      prev.map((c) => (c.workItemType === workItemType ? updater(c) : c))
+    );
+  }
+
+  if (loading) return <p className="page-center">Loading configuration…</p>;
   if (error) return <p className="error-banner">{error}</p>;
 
-  const active = workflows.find((w) => w.workItemType === activeType);
+  const activeWorkflow = workflows.find((w) => w.workItemType === activeType);
+  const activeFieldCatalog = fieldCatalogs.find((c) => c.workItemType === activeType);
 
   return (
     <div className="configure-page">
@@ -57,13 +71,41 @@ export default function ConfigurePage({ project }) {
         </nav>
 
         <section className="workflow-panel">
-          {active ? (
-            <WorkflowEditor
-              key={active.workItemType}
-              projectId={project.id}
-              workflow={active}
-              onChange={(updater) => updateWorkflow(active.workItemType, updater)}
-            />
+          {activeType ? (
+            <>
+              <nav className="tab-nav configure-section-nav">
+                <button
+                  className={section === 'workflow' ? 'tab-nav-item active' : 'tab-nav-item'}
+                  onClick={() => setSection('workflow')}
+                >
+                  Workflow
+                </button>
+                <button
+                  className={section === 'fields' ? 'tab-nav-item active' : 'tab-nav-item'}
+                  onClick={() => setSection('fields')}
+                >
+                  Custom Fields
+                </button>
+              </nav>
+
+              {section === 'workflow' && activeWorkflow && (
+                <WorkflowEditor
+                  key={activeWorkflow.workItemType}
+                  projectId={project.id}
+                  workflow={activeWorkflow}
+                  onChange={(updater) => updateWorkflow(activeWorkflow.workItemType, updater)}
+                />
+              )}
+
+              {section === 'fields' && activeFieldCatalog && (
+                <CustomFieldsEditor
+                  key={activeFieldCatalog.workItemType}
+                  projectId={project.id}
+                  catalog={activeFieldCatalog}
+                  onChange={(updater) => updateFieldCatalog(activeFieldCatalog.workItemType, updater)}
+                />
+              )}
+            </>
           ) : (
             <p>No work item types configured for this project.</p>
           )}

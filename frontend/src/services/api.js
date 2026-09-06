@@ -67,6 +67,22 @@ export const api = {
       method: 'DELETE'
     }),
 
+  listCustomFields: (projectId) => request(`/api/projects/${projectId}/custom-fields`),
+  addCustomField: (projectId, workItemType, payload) =>
+    request(`/api/projects/${projectId}/custom-fields/${workItemType}`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  updateCustomField: (projectId, workItemType, fieldId, payload) =>
+    request(`/api/projects/${projectId}/custom-fields/${workItemType}/${fieldId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }),
+  deleteCustomField: (projectId, workItemType, fieldId) =>
+    request(`/api/projects/${projectId}/custom-fields/${workItemType}/${fieldId}`, {
+      method: 'DELETE'
+    }),
+
   listWorkItems: (projectId, type) =>
     request(`/api/projects/${projectId}/work-items${type ? `?type=${encodeURIComponent(type)}` : ''}`),
   createWorkItem: (projectId, payload) =>

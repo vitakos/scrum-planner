@@ -369,6 +369,49 @@ textarea {
   min-width: 90px;
 }
 
+.configure-section-nav {
+  margin-bottom: 16px;
+}
+
+.field-list {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.field-list-empty {
+  padding: 4px 0;
+}
+
+.field-row,
+.field-row-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--bg-subtle);
+}
+
+.field-row-group {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.field-type-badge {
+  font-size: 0.75rem;
+  background: var(--bg-subtle);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-muted);
+}
+
+.field-options-input {
+  width: 100%;
+}
+
 /* Backlog board */
 .new-item-input {
   flex: 1;
