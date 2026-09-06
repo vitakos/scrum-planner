@@ -85,6 +85,67 @@ function withRetry(fn, { retries = 15, delayMs = 2000, label = '' } = {}) {
   throw lastErr;
 }
 
+// --- Wait for a service's Docker healthcheck to report healthy before
+// touching it. Both services in docker-compose.yml define a healthcheck, so
+// this is what actually protects migrate.js from racing e.g. Mongo's
+// first-run restart (it briefly restarts itself while enabling auth).
+function getComposeStatus(service) {
+  let raw;
+  try {
+    raw = compose(['ps', '--format', 'json', service], { capture: true });
+  } catch (err) {
+    return null;
+  }
+  raw = (raw || '').trim();
+  if (!raw) return null;
+
+  let entries;
+  try {
+    const parsed = JSON.parse(raw);
+    entries = Array.isArray(parsed) ? parsed : [parsed];
+  } catch (err) {
+    // Older/newer Compose versions print one JSON object per line instead of an array.
+    entries = raw
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  }
+  return entries.find((e) => e.Service === service) || entries[0] || null;
+}
+
+function waitForHealthy(service, { retries = 40, delayMs = 3000 } = {}) {
+  for (let i = 0; i < retries; i++) {
+    const status = getComposeStatus(service);
+    if (status) {
+      const health = (status.Health || '').toLowerCase();
+      const state = (status.State || status.Status || '').toLowerCase();
+      if (health === 'healthy') return;
+      // No healthcheck reported for some reason, but container is up: proceed.
+      if (!health && state.includes('running')) return;
+      if (state.includes('exited') || state.includes('dead')) {
+        throw new Error(
+          `Service "${service}" is not running (state: ${status.State || status.Status}). ` +
+            `Check \`docker compose logs ${service}\`.`
+        );
+      }
+    } else if (i === 0) {
+      console.log(`[warn] could not read status for "${service}" yet — is it started?`);
+    }
+    if (i < retries - 1) {
+      console.log(`  ... waiting for ${service} to become healthy (${i + 1}/${retries})`);
+      sleep(delayMs);
+    }
+  }
+  console.log(`[warn] "${service}" never reported healthy after waiting — attempting anyway.`);
+}
+
 function readUpgradeLog(file) {
   if (!fs.existsSync(file)) return { applied: [] };
   const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -109,7 +170,7 @@ function pendingMigrations(migrationsDir, log, ext) {
 function applySqlMigration(file) {
   const src = path.join(SQL_MIGRATIONS_DIR, file);
   const dest = `/tmp/${file}`;
-  withRetry(() => compose(['cp', src, `postgres:${dest}`]), { label: 'postgres container' });
+  compose(['cp', src, `postgres:${dest}`]);
   compose([
     'exec', '-T', 'postgres',
     'psql',
@@ -123,7 +184,7 @@ function applySqlMigration(file) {
 function applyMongoMigration(file) {
   const src = path.join(MONGO_MIGRATIONS_DIR, file);
   const dest = `/tmp/${file}`;
-  withRetry(() => compose(['cp', src, `mongo:${dest}`]), { label: 'mongo container' });
+  compose(['cp', src, `mongo:${dest}`]);
   const uri =
     `mongodb://${cfg('MONGO_ROOT_USER', 'scrum_planner')}:${cfg('MONGO_ROOT_PASSWORD', 'scrum_planner')}` +
     `@localhost:27017/${cfg('MONGO_DB', 'scrum_planner')}?authSource=admin`;
@@ -132,6 +193,7 @@ function applyMongoMigration(file) {
 
 function run(engine) {
   const isSql = engine === 'sql';
+  const service = isSql ? 'postgres' : 'mongo';
   const migrationsDir = isSql ? SQL_MIGRATIONS_DIR : MONGO_MIGRATIONS_DIR;
   const upgradeFile = isSql ? SQL_UPGRADE_FILE : MONGO_UPGRADE_FILE;
   const ext = isSql ? '.sql' : '.js';
@@ -143,6 +205,9 @@ function run(engine) {
     console.log(`[${engine}] up to date, nothing to apply.`);
     return;
   }
+
+  console.log(`[${engine}] waiting for ${service} to be healthy...`);
+  waitForHealthy(service);
 
   for (const file of pending) {
     console.log(`[${engine}] applying ${file} ...`);
