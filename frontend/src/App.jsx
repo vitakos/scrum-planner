@@ -3,6 +3,7 @@ import { api } from './services/api.js';
 import ProjectWizardPage from './pages/ProjectWizardPage.jsx';
 import ConfigurePage from './pages/ConfigurePage.jsx';
 import BacklogPage from './pages/BacklogPage.jsx';
+import ProjectMenu from './components/ProjectMenu.jsx';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -11,6 +12,7 @@ export default function App() {
   const [workItemTypes, setWorkItemTypes] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
   const [activeTab, setActiveTab] = useState('backlog');
+  const [showAddProject, setShowAddProject] = useState(false);
 
   useEffect(() => {
     loadInitialData();
@@ -34,9 +36,10 @@ export default function App() {
     }
   }
 
-  async function handleProjectCreated(project) {
+  function handleProjectCreated(project) {
     setProjects((prev) => [...prev, project]);
     setSelectedProjectId(project.id);
+    setShowAddProject(false);
   }
 
   if (loading) {
@@ -78,22 +81,12 @@ export default function App() {
             </button>
           </nav>
         </div>
-        {projects.length > 1 ? (
-          <select
-            value={selectedProject.id}
-            onChange={(e) => setSelectedProjectId(e.target.value)}
-          >
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.key} — {p.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="project-badge">
-            {selectedProject.key} — {selectedProject.name}
-          </span>
-        )}
+        <ProjectMenu
+          projects={projects}
+          selectedProject={selectedProject}
+          onSelectProject={setSelectedProjectId}
+          onAddProject={() => setShowAddProject(true)}
+        />
       </header>
       <main>
         {activeTab === 'backlog' ? (
@@ -102,6 +95,18 @@ export default function App() {
           <ConfigurePage key={selectedProject.id} project={selectedProject} />
         )}
       </main>
+
+      {showAddProject && (
+        <div className="modal-overlay" onClick={() => setShowAddProject(false)}>
+          <div className="modal-panel" onClick={(e) => e.stopPropagation()}>
+            <ProjectWizardPage
+              workItemTypes={workItemTypes}
+              onCreated={handleProjectCreated}
+              onCancel={() => setShowAddProject(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
