@@ -3,6 +3,9 @@ package com.scrumplanner.core.workitem;
 import com.scrumplanner.core.common.ConflictException;
 import com.scrumplanner.core.common.NotFoundException;
 import com.scrumplanner.core.content.WorkItemContentService;
+import com.scrumplanner.core.content.WorkItemContentService.WorkItemContent;
+import com.scrumplanner.core.customfield.CustomFieldDefinition;
+import com.scrumplanner.core.customfield.CustomFieldDefinitionRepository;
 import com.scrumplanner.core.project.Project;
 import com.scrumplanner.core.project.ProjectRepository;
 import com.scrumplanner.core.workflow.WorkflowDefinition;
@@ -24,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,6 +42,7 @@ public class WorkItemService {
     private final WorkflowTransitionRepository workflowTransitionRepository;
     private final WorkItemTypeCatalogRepository typeCatalogRepository;
     private final WorkItemContentService workItemContentService;
+    private final CustomFieldDefinitionRepository customFieldDefinitionRepository;
 
     public WorkItemService(
             WorkItemRepository workItemRepository,
@@ -47,7 +52,8 @@ public class WorkItemService {
             WorkflowStateRepository workflowStateRepository,
             WorkflowTransitionRepository workflowTransitionRepository,
             WorkItemTypeCatalogRepository typeCatalogRepository,
-            WorkItemContentService workItemContentService
+            WorkItemContentService workItemContentService,
+            CustomFieldDefinitionRepository customFieldDefinitionRepository
     ) {
         this.workItemRepository = workItemRepository;
         this.workItemStateLogRepository = workItemStateLogRepository;
@@ -57,6 +63,7 @@ public class WorkItemService {
         this.workflowTransitionRepository = workflowTransitionRepository;
         this.typeCatalogRepository = typeCatalogRepository;
         this.workItemContentService = workItemContentService;
+        this.customFieldDefinitionRepository = customFieldDefinitionRepository;
     }
 
     @Transactional
@@ -83,14 +90,15 @@ public class WorkItemService {
         );
 
         String content = request.content();
-        if (content != null) {
+        Map<String, Object> customFields = validateCustomFields(projectId, request.type(), request.customFields());
+        if (content != null || customFields != null) {
             // item.getId() is already populated: WorkItem uses a client-generated
             // (GenerationType.UUID) id, and item stays managed within this
             // transaction, so setting contentRef here is enough — no extra save.
-            item.setContentRef(workItemContentService.saveContent(null, item.getId(), content));
+            item.setContentRef(workItemContentService.upsert(null, item.getId(), content, customFields));
         }
 
-        return toResponse(item, project.getKey(), context, content);
+        return toResponse(item, project.getKey(), context, content, customFields != null ? customFields : Map.of());
     }
 
     @Transactional(readOnly = true)
@@ -105,15 +113,17 @@ public class WorkItemService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();
-        Map<String, String> contentByRef = workItemContentService.findContentByRefs(contentRefs);
+        Map<String, WorkItemContent> contentByRef = workItemContentService.findByRefs(contentRefs);
 
         Map<String, TypeWorkflowContext> contextsByType = new HashMap<>();
         return items.stream()
                 .map(item -> {
                     TypeWorkflowContext context = contextsByType.computeIfAbsent(
                             item.getType(), t -> loadContext(projectId, t));
-                    String content = item.getContentRef() != null ? contentByRef.get(item.getContentRef()) : null;
-                    return toResponse(item, project.getKey(), context, content);
+                    WorkItemContent content = item.getContentRef() != null
+                            ? contentByRef.getOrDefault(item.getContentRef(), WorkItemContent.EMPTY)
+                            : WorkItemContent.EMPTY;
+                    return toResponse(item, project.getKey(), context, content.description(), content.customFields());
                 })
                 .toList();
     }
@@ -122,8 +132,8 @@ public class WorkItemService {
     public WorkItemResponse getWorkItem(UUID projectId, UUID workItemId) {
         Project project = requireProject(projectId);
         WorkItem item = requireWorkItem(projectId, workItemId);
-        String content = workItemContentService.findContent(item.getContentRef()).orElse(null);
-        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), content);
+        WorkItemContent content = workItemContentService.find(item.getContentRef()).orElse(WorkItemContent.EMPTY);
+        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), content.description(), content.customFields());
     }
 
     @Transactional
@@ -140,13 +150,17 @@ public class WorkItemService {
         item.reparent(parentId);
 
         String content = request.content();
-        if (content != null) {
-            item.setContentRef(workItemContentService.saveContent(item.getContentRef(), item.getId(), content));
-        } else {
-            content = workItemContentService.findContent(item.getContentRef()).orElse(null);
+        Map<String, Object> customFields = validateCustomFields(projectId, item.getType(), request.customFields());
+
+        WorkItemContent existing = workItemContentService.find(item.getContentRef()).orElse(WorkItemContent.EMPTY);
+        if (content != null || customFields != null) {
+            item.setContentRef(workItemContentService.upsert(item.getContentRef(), item.getId(), content, customFields));
         }
 
-        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), content);
+        String responseContent = content != null ? content : existing.description();
+        Map<String, Object> responseCustomFields = customFields != null ? customFields : existing.customFields();
+
+        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), responseContent, responseCustomFields);
     }
 
     @Transactional
@@ -168,14 +182,14 @@ public class WorkItemService {
         workItemStateLogRepository.save(new WorkItemStateLog(item.getId(), item.getStateId(), transition.getToStateId()));
         item.moveToState(transition.getToStateId());
 
-        String content = workItemContentService.findContent(item.getContentRef()).orElse(null);
-        return toResponse(item, project.getKey(), context, content);
+        WorkItemContent content = workItemContentService.find(item.getContentRef()).orElse(WorkItemContent.EMPTY);
+        return toResponse(item, project.getKey(), context, content.description(), content.customFields());
     }
 
     @Transactional
     public void deleteWorkItem(UUID projectId, UUID workItemId) {
         WorkItem item = requireWorkItem(projectId, workItemId);
-        workItemContentService.deleteContent(item.getContentRef());
+        workItemContentService.delete(item.getContentRef());
         workItemRepository.delete(item);
     }
 
@@ -211,7 +225,34 @@ public class WorkItemService {
         }
     }
 
-    private WorkItemResponse toResponse(WorkItem item, String projectKey, TypeWorkflowContext context, String content) {
+    /**
+     * Custom field values are free-form on the Mongo side, but every key
+     * must name a field actually configured for this project/work item type
+     * — otherwise a typo or a stale (deleted) field name would silently pile
+     * up in the content document forever. Returns {@code null} unchanged
+     * (meaning "don't touch stored custom fields") when the request didn't
+     * send any.
+     */
+    private Map<String, Object> validateCustomFields(UUID projectId, String workItemType, Map<String, Object> customFields) {
+        if (customFields == null) {
+            return null;
+        }
+        Set<String> validNames = customFieldDefinitionRepository
+                .findAllByProjectIdAndWorkItemTypeOrderByNameAsc(projectId, workItemType).stream()
+                .map(CustomFieldDefinition::getName)
+                .collect(Collectors.toSet());
+        for (String name : customFields.keySet()) {
+            if (!validNames.contains(name)) {
+                throw new IllegalArgumentException(
+                        "Unknown custom field '" + name + "' for work item type '" + workItemType + "'");
+            }
+        }
+        return customFields;
+    }
+
+    private WorkItemResponse toResponse(
+            WorkItem item, String projectKey, TypeWorkflowContext context, String content, Map<String, Object> customFields
+    ) {
         WorkflowState state = context.statesById().get(item.getStateId());
         List<AvailableTransitionResponse> available = context.transitions().stream()
                 .filter(t -> t.getFromStateId().equals(item.getStateId()))
@@ -241,6 +282,7 @@ public class WorkItemService {
                 context.typeName(),
                 item.getTitle(),
                 content,
+                customFields,
                 item.getStateId(),
                 state != null ? state.getName() : "?",
                 state != null ? state.getCategory().name() : "?",

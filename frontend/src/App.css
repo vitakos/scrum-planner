@@ -498,6 +498,68 @@ textarea {
   min-height: 200px;
 }
 
+.work-item-detail-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px 16px;
+  margin: 0 0 20px;
+  padding: 12px 14px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.work-item-detail-facts div {
+  min-width: 0;
+}
+
+.work-item-detail-facts dt {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.work-item-detail-facts dd {
+  margin: 0;
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.work-item-detail-custom-fields {
+  margin-top: 20px;
+}
+
+.work-item-detail-custom-fields h4 {
+  margin-bottom: 10px;
+}
+
+.custom-field-row {
+  margin-bottom: 12px;
+}
+
+.custom-field-row select,
+.custom-field-row input[type='text'],
+.custom-field-row input[type='number'],
+.custom-field-row input[type='date'] {
+  width: 100%;
+  max-width: 320px;
+}
+
+.multi-select-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.88rem;
+}
+
 .work-item-detail-actions {
   display: flex;
   justify-content: flex-end;

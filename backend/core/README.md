@@ -48,8 +48,8 @@ handful of projects.
 | DELETE | `/api/projects/{id}/workflows/{workItemType}/transitions/{transitionId}` | Delete a transition |
 | GET | `/api/projects/{id}/work-items?type=epic` | List work items (optionally filtered by type), ordered by creation |
 | GET | `/api/projects/{id}/work-items/{workItemId}` | Get one work item |
-| POST | `/api/projects/{id}/work-items` | Create a work item — `{ type, title, parentId?, content? }`. Starts in its type's initial workflow state, gets a human-readable key (`{projectKey}-{n}`). `content` is an optional Markdown body, stored in MongoDB and linked via `content_ref` |
-| PUT | `/api/projects/{id}/work-items/{workItemId}` | Update a work item — `{ title, parentId?, content? }`. Omit `content` to leave it unchanged; pass a string (including `""`) to replace it |
+| POST | `/api/projects/{id}/work-items` | Create a work item — `{ type, title, parentId?, content?, customFields? }`. Starts in its type's initial workflow state, gets a human-readable key (`{projectKey}-{n}`). `content` (Markdown) and `customFields` (`{ fieldName: value }`, must match this type's configured custom fields) are stored in MongoDB and linked via `content_ref` |
+| PUT | `/api/projects/{id}/work-items/{workItemId}` | Update a work item — `{ title, parentId?, content?, customFields? }`. Omit `content`/`customFields` to leave them unchanged; pass a value (`""` / `{}`) to replace/clear them |
 | POST | `/api/projects/{id}/work-items/{workItemId}/transitions` | Move a work item — `{ transitionId }` (must be a transition out of its current state; logged to the state-transition history) |
 | DELETE | `/api/projects/{id}/work-items/{workItemId}` | Delete a work item |
 

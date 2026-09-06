@@ -10,6 +10,7 @@ export default function BacklogPage({ project }) {
   const [activeType, setActiveType] = useState(null);
   const [parentFilter, setParentFilter] = useState(null);
   const [presetParentId, setPresetParentId] = useState(null);
+  const [customFieldCatalogs, setCustomFieldCatalogs] = useState([]);
 
   useEffect(() => {
     loadAll();
@@ -20,12 +21,14 @@ export default function BacklogPage({ project }) {
     setLoading(true);
     setError(null);
     try {
-      const [workflowList, itemList] = await Promise.all([
+      const [workflowList, itemList, fieldCatalogs] = await Promise.all([
         api.listWorkflows(project.id),
-        api.listWorkItems(project.id)
+        api.listWorkItems(project.id),
+        api.listCustomFields(project.id)
       ]);
       setWorkflows(workflowList);
       setItems(itemList);
+      setCustomFieldCatalogs(fieldCatalogs);
       setActiveType((current) => current ?? workflowList[0]?.workItemType ?? null);
     } catch (err) {
       setError(err.message);
@@ -105,6 +108,7 @@ export default function BacklogPage({ project }) {
               workflows={workflows}
               items={itemsForType}
               allItems={items}
+              customFieldCatalogs={customFieldCatalogs}
               presetParentId={presetParentId}
               onItemChanged={upsertItem}
               onItemDeleted={removeItem}

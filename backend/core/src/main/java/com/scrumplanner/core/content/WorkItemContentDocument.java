@@ -4,13 +4,14 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.Map;
+
 /**
- * The MongoDB document behind a work item's rich content body (see
- * docs/backlog-data-model.md). Only the {@code description} field is used
- * here — it holds the work item's Markdown-formatted body text, referenced
- * from Postgres via {@code work_item.content_ref} (this document's id).
- * {@code custom_fields}/{@code comments}/{@code attachments} are part of the
- * same collection's schema but aren't populated by this service yet.
+ * The MongoDB document behind a work item's flexible content (see
+ * docs/backlog-data-model.md), referenced from Postgres via
+ * {@code work_item.content_ref} (this document's id).
+ * {@code comments}/{@code attachments} are part of the same collection's
+ * schema but aren't populated by this service yet.
  */
 @Document(collection = "work_item_content")
 public class WorkItemContentDocument {
@@ -28,13 +29,20 @@ public class WorkItemContentDocument {
      */
     private String description;
 
+    /**
+     * Custom field values, keyed by CustomFieldDefinition.name — validated
+     * against that project/work-item-type's definitions in WorkItemService
+     * before being written here.
+     */
+    @Field("custom_fields")
+    private Map<String, Object> customFields;
+
     protected WorkItemContentDocument() {
         // Spring Data
     }
 
-    public WorkItemContentDocument(String workItemId, String description) {
+    public WorkItemContentDocument(String workItemId) {
         this.workItemId = workItemId;
-        this.description = description;
     }
 
     public String getId() {
@@ -51,5 +59,13 @@ public class WorkItemContentDocument {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public Map<String, Object> getCustomFields() {
+        return customFields;
+    }
+
+    public void setCustomFields(Map<String, Object> customFields) {
+        this.customFields = customFields;
     }
 }

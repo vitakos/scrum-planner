@@ -16,6 +16,7 @@ export default function WorkItemBoard({
   workflows,
   items,
   allItems,
+  customFieldCatalogs,
   presetParentId,
   onItemChanged,
   onItemDeleted,
@@ -247,6 +248,9 @@ export default function WorkItemBoard({
         <WorkItemDetailModal
           projectId={projectId}
           item={detailItem}
+          customFieldDefs={
+            (customFieldCatalogs ?? []).find((c) => c.workItemType === detailItem.type)?.customFields ?? []
+          }
           onClose={() => setDetailItem(null)}
           onSaved={(updated) => {
             onItemChanged(updated);

@@ -2,6 +2,7 @@ package com.scrumplanner.core.workitem.dto;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public record WorkItemResponse(
@@ -12,6 +13,7 @@ public record WorkItemResponse(
         String typeName,
         String title,
         String content,
+        Map<String, Object> customFields,
         UUID stateId,
         String stateName,
         String stateCategory,
