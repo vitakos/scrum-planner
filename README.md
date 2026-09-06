@@ -103,7 +103,11 @@ scrum-planner/
 │   └── config/
 ├── frontend/
 │   └── src/ (components/, pages/, features/, services/)
-├── infra/                    # Docker Compose for local dev, IaC, CI/CD templates
+├── infra/                    # Docker Compose for local dev (docker-compose.yml, .env.example), IaC, CI/CD templates
+├── database/                  # DB scripts and migration tooling — see database/README.md
+│   ├── migrate.js             # applies pending SQL/Mongo migrations, tracked in upgrade.json
+│   ├── sql/migrations/        # PostgreSQL schema migrations (*.sql) + upgrade.json
+│   └── mongo/migrations/      # MongoDB migrations (*.js) + upgrade.json
 └── docs/                     # Architecture decisions, feature specs
 ```
 
@@ -113,7 +117,8 @@ scrum-planner/
 
 ### Prerequisites
 - Java 21 (LTS)
-- Docker & Docker Compose
+- Node.js (for the frontend, and for `database/migrate.js`)
+- Docker & Docker Compose (Docker Desktop with the WSL2 backend, on Windows)
 > TODO: confirm Node.js version, PostgreSQL/MongoDB versions, and whether an internal message broker is introduced now or deferred until the AI Assistants module is extracted into its own service.
 
 ### Installation
@@ -131,14 +136,32 @@ npm install
 ```
 
 ### Running Locally
+
+**Data storage (PostgreSQL + MongoDB):**
+```bash
+cd infra
+cp .env.example .env      # first time only; adjust credentials/DB_DATA_DIR if needed
+docker compose up -d
+node ../database/migrate.js   # applies pending schema/data migrations — see database/README.md
+```
+Data is persisted to `DB_DATA_DIR` on the host (defaults to `C:\temp\scrum-planner-data`), so it
+survives container recreation. Re-run `node database/migrate.js` any time new migration files are
+added.
+
+**Full stack** (once backend/frontend have Dockerfiles):
 ```bash
 docker compose up
 # Brings up: backend (core + ai-gateway + ai-assistants), frontend, PostgreSQL, MongoDB
 ```
-> TODO: finalize the Docker Compose file once the backend modules and frontend have Dockerfiles.
+> TODO: finalize the Docker Compose file once the backend modules and frontend have Dockerfiles —
+> for now `infra/docker-compose.yml` only defines the PostgreSQL/MongoDB data containers.
 
 ## Configuration
-> TODO: document environment variables, including: per-project/per-pipeline AI provider & model selection in the AI Gateway module, provider credentials (OpenAI, Claude, Bedrock, Gemini), and PostgreSQL/MongoDB connection settings.
+Local PostgreSQL/MongoDB connection settings and the data folder location are configured via
+`infra/.env` (copy from `infra/.env.example`) — see [`database/README.md`](database/README.md).
+
+> TODO: document remaining environment variables, including: per-project/per-pipeline AI provider &
+> model selection in the AI Gateway module, and provider credentials (OpenAI, Claude, Bedrock, Gemini).
 
 ## Roadmap
 
@@ -146,6 +169,7 @@ docker compose up
 
 - [ ] Define data model for Projects, Teams, Users/Roles
 - [x] Define data model for artifacts (Epics, Features, User Stories, Tasks, Bugs, Test Cases, Test Runs) — see `docs/backlog-data-model.md`
+- [x] Local database environment: Docker Compose (PostgreSQL + MongoDB, persisted data) and migration tooling — see `database/README.md`
 - [ ] **MVP: minimal Project + Work Item CRUD + basic Workflow, usable to self-host this project's own backlog**
 - [ ] Migrate this roadmap into the application itself once the MVP is usable
 - [ ] Implement customizable workflow engine per artifact type
