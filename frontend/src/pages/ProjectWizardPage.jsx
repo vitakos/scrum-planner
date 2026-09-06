@@ -6,7 +6,7 @@ function suggestKey(name) {
   return letters.slice(0, 4) || '';
 }
 
-export default function ProjectWizardPage({ workItemTypes, onCreated }) {
+export default function ProjectWizardPage({ workItemTypes, onCreated, onCancel }) {
   const [name, setName] = useState('');
   const [key, setKey] = useState('');
   const [keyEdited, setKeyEdited] = useState(false);
@@ -86,9 +86,16 @@ export default function ProjectWizardPage({ workItemTypes, onCreated }) {
 
           {error && <p className="error-banner">{error}</p>}
 
-          <button type="submit" disabled={submitting}>
-            {submitting ? 'Creating…' : 'Create project'}
-          </button>
+          <div className="wizard-actions">
+            <button type="submit" disabled={submitting}>
+              {submitting ? 'Creating…' : 'Create project'}
+            </button>
+            {onCancel && (
+              <button type="button" className="secondary-button" onClick={onCancel} disabled={submitting}>
+                Cancel
+              </button>
+            )}
+          </div>
         </form>
 
         <div className="wizard-types">
