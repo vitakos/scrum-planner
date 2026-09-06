@@ -15,6 +15,10 @@
     {
       "file": "0004_workflow_transition_name.sql",
       "appliedAt": "2026-09-06T10:05:54.562Z"
+    },
+    {
+      "file": "0005_work_item_and_key.sql",
+      "appliedAt": "2026-09-06T10:24:37.452Z"
     }
   ]
 }

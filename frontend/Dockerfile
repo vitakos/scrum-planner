@@ -6,13 +6,15 @@ COPY package.json package-lock.json* ./
 RUN npm install
 
 COPY . .
-# Baked in at image build time; override by rebuilding with --build-arg if the
-# backend URL changes.
-ARG VITE_API_BASE_URL=http://localhost:8080
+# Empty by default: same-origin, proxied to the backend container by nginx.conf
+# (see nginx.conf). Override with --build-arg only if you need the built
+# assets to call a different backend directly.
+ARG VITE_API_BASE_URL=
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 # --- runtime stage ---
 FROM nginx:1.27-alpine
 COPY --from=build /build/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

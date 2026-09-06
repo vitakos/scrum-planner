@@ -190,6 +190,9 @@ Local PostgreSQL/MongoDB connection settings and the data folder location are co
 - [ ] Dashboards per role
 - [ ] Evaluate extracting AI Gateway / AI Assistants / frontend into separate repositories/services once the system stabilizes
 
+## Working with Claude
+See [`CLAUDE.md`](CLAUDE.md) for notes on using Claude's browser tools to inspect/pair on the UI.
+
 ## Contributing
 - **Branching strategy:** trunk-based development — short-lived feature branches, frequent PRs into `main`, feature flags for incomplete work.
 > TODO: define PR review requirements and coding standards (Java/Spring conventions for backend, React/JS conventions for frontend).

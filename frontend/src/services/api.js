@@ -1,4 +1,5 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+// Empty by default: same-origin in dev, proxied by Vite (see vite.config.js) to the backend.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 async function request(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
