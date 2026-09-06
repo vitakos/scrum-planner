@@ -30,6 +30,9 @@ public class Project {
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
+    @Column(name = "work_item_seq", nullable = false)
+    private int workItemSeq = 0;
+
     protected Project() {
         // JPA
     }
@@ -64,5 +67,16 @@ public class Project {
     public void rename(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+
+    /**
+     * Simple read-modify-write counter for the human-readable work item key
+     * (e.g. "SPAI-1"). Not concurrency-safe under truly simultaneous
+     * requests, which is an acceptable tradeoff for a single local user;
+     * revisit (e.g. a DB-side atomic increment) before multi-user support.
+     */
+    public int nextWorkItemSeq() {
+        workItemSeq += 1;
+        return workItemSeq;
     }
 }

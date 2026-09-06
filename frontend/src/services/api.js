@@ -59,5 +59,22 @@ export const api = {
   deleteTransition: (projectId, workItemType, transitionId) =>
     request(`/api/projects/${projectId}/workflows/${workItemType}/transitions/${transitionId}`, {
       method: 'DELETE'
-    })
+    }),
+
+  listWorkItems: (projectId, type) =>
+    request(`/api/projects/${projectId}/work-items${type ? `?type=${encodeURIComponent(type)}` : ''}`),
+  createWorkItem: (projectId, payload) =>
+    request(`/api/projects/${projectId}/work-items`, { method: 'POST', body: JSON.stringify(payload) }),
+  updateWorkItemTitle: (projectId, workItemId, payload) =>
+    request(`/api/projects/${projectId}/work-items/${workItemId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }),
+  applyWorkItemTransition: (projectId, workItemId, payload) =>
+    request(`/api/projects/${projectId}/work-items/${workItemId}/transitions`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    }),
+  deleteWorkItem: (projectId, workItemId) =>
+    request(`/api/projects/${projectId}/work-items/${workItemId}`, { method: 'DELETE' })
 };

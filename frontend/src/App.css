@@ -60,7 +60,7 @@ textarea {
 }
 
 .app-shell {
-  max-width: 960px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 0 16px 48px;
 }
@@ -74,9 +74,34 @@ textarea {
   margin-bottom: 24px;
 }
 
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
 .app-title {
   font-weight: 700;
   font-size: 1.1rem;
+}
+
+.tab-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.tab-nav-item {
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  padding: 6px 12px;
+  color: var(--text-muted);
+}
+
+.tab-nav-item.active {
+  background: var(--bg-subtle);
+  color: #1a1d23;
+  font-weight: 600;
 }
 
 .project-badge {
@@ -268,4 +293,69 @@ textarea {
 .transition-name {
   font-weight: 600;
   min-width: 90px;
+}
+
+/* Backlog board */
+.new-item-input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.board {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.board-column {
+  flex: 1 0 220px;
+  min-width: 220px;
+  background: var(--bg-subtle);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.board-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  padding: 4px 4px 10px;
+}
+
+.board-column-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.board-card {
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.board-card-key {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.board-card-title {
+  margin: 2px 0 8px;
+  font-size: 0.9rem;
+}
+
+.board-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.board-card-actions button {
+  padding: 3px 8px;
+  font-size: 0.8rem;
 }

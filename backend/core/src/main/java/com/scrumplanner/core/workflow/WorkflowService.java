@@ -4,6 +4,7 @@ import com.scrumplanner.core.common.ConflictException;
 import com.scrumplanner.core.common.NotFoundException;
 import com.scrumplanner.core.worktype.WorkItemTypeCatalog;
 import com.scrumplanner.core.worktype.WorkItemTypeCatalogRepository;
+import com.scrumplanner.core.workitem.WorkItemRepository;
 import com.scrumplanner.core.workflow.dto.CreateStateRequest;
 import com.scrumplanner.core.workflow.dto.CreateTransitionRequest;
 import com.scrumplanner.core.workflow.dto.UpdateStateRequest;
@@ -27,17 +28,20 @@ public class WorkflowService {
     private final WorkflowDefinitionRepository workflowDefinitionRepository;
     private final WorkflowStateRepository workflowStateRepository;
     private final WorkflowTransitionRepository workflowTransitionRepository;
+    private final WorkItemRepository workItemRepository;
 
     public WorkflowService(
             WorkItemTypeCatalogRepository typeCatalogRepository,
             WorkflowDefinitionRepository workflowDefinitionRepository,
             WorkflowStateRepository workflowStateRepository,
-            WorkflowTransitionRepository workflowTransitionRepository
+            WorkflowTransitionRepository workflowTransitionRepository,
+            WorkItemRepository workItemRepository
     ) {
         this.typeCatalogRepository = typeCatalogRepository;
         this.workflowDefinitionRepository = workflowDefinitionRepository;
         this.workflowStateRepository = workflowStateRepository;
         this.workflowTransitionRepository = workflowTransitionRepository;
+        this.workItemRepository = workItemRepository;
     }
 
     @Transactional(readOnly = true)
@@ -92,6 +96,9 @@ public class WorkflowService {
         }
         if (workflowTransitionRepository.existsByFromStateIdOrToStateId(stateId, stateId)) {
             throw new ConflictException("Cannot delete a state that is used by a transition — remove the transition(s) first");
+        }
+        if (workItemRepository.existsByStateId(stateId)) {
+            throw new ConflictException("Cannot delete a state that has work items in it — move them first");
         }
         workflowStateRepository.delete(state);
     }

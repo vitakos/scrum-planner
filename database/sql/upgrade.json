@@ -11,6 +11,10 @@
     {
       "file": "0003_workflow_state_ordering.sql",
       "appliedAt": "2026-09-06T09:50:52.643Z"
+    },
+    {
+      "file": "0004_workflow_transition_name.sql",
+      "appliedAt": "2026-09-06T10:05:54.562Z"
     }
   ]
 }

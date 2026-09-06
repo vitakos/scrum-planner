@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from './services/api.js';
 import ProjectWizardPage from './pages/ProjectWizardPage.jsx';
 import ConfigurePage from './pages/ConfigurePage.jsx';
+import BacklogPage from './pages/BacklogPage.jsx';
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -9,6 +10,7 @@ export default function App() {
   const [projects, setProjects] = useState([]);
   const [workItemTypes, setWorkItemTypes] = useState([]);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [activeTab, setActiveTab] = useState('backlog');
 
   useEffect(() => {
     loadInitialData();
@@ -59,8 +61,22 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <div>
+        <div className="app-header-left">
           <span className="app-title">Scrum Planner</span>
+          <nav className="tab-nav">
+            <button
+              className={activeTab === 'backlog' ? 'tab-nav-item active' : 'tab-nav-item'}
+              onClick={() => setActiveTab('backlog')}
+            >
+              Backlog
+            </button>
+            <button
+              className={activeTab === 'configure' ? 'tab-nav-item active' : 'tab-nav-item'}
+              onClick={() => setActiveTab('configure')}
+            >
+              Configure
+            </button>
+          </nav>
         </div>
         {projects.length > 1 ? (
           <select
@@ -80,7 +96,11 @@ export default function App() {
         )}
       </header>
       <main>
-        <ConfigurePage project={selectedProject} />
+        {activeTab === 'backlog' ? (
+          <BacklogPage key={selectedProject.id} project={selectedProject} />
+        ) : (
+          <ConfigurePage key={selectedProject.id} project={selectedProject} />
+        )}
       </main>
     </div>
   );

@@ -46,5 +46,18 @@ handful of projects.
 | POST | `/api/projects/{id}/workflows/{workItemType}/transitions` | Add a transition — `{ name, fromStateId, toStateId }` (e.g. `{ "name": "Start", "fromStateId": ..., "toStateId": ... }`) |
 | PUT | `/api/projects/{id}/workflows/{workItemType}/transitions/{transitionId}` | Rename a transition — `{ name }` |
 | DELETE | `/api/projects/{id}/workflows/{workItemType}/transitions/{transitionId}` | Delete a transition |
+| GET | `/api/projects/{id}/work-items?type=epic` | List work items (optionally filtered by type), ordered by creation |
+| GET | `/api/projects/{id}/work-items/{workItemId}` | Get one work item |
+| POST | `/api/projects/{id}/work-items` | Create a work item — `{ type, title }`. Starts in its type's initial workflow state, gets a human-readable key (`{projectKey}-{n}`) |
+| PUT | `/api/projects/{id}/work-items/{workItemId}` | Rename a work item — `{ title }` |
+| POST | `/api/projects/{id}/work-items/{workItemId}/transitions` | Move a work item — `{ transitionId }` (must be a transition out of its current state; logged to the state-transition history) |
+| DELETE | `/api/projects/{id}/work-items/{workItemId}` | Delete a work item |
+
+A work item response includes `availableTransitions` (id/name/toStateId/toStateName) computed from its
+current state, so the frontend doesn't need a separate lookup to know which moves are valid.
 
 Errors are returned as JSON: `{ timestamp, status, error, message }`.
+
+Not yet implemented (see the root README's roadmap): parent/child hierarchy, assignee/reporter, sprints,
+the MongoDB-backed description/comments/attachments document, and custom fields. The `work_item` table
+already has the columns for the first four; `backend/core`'s `WorkItem` entity just doesn't map them yet.
