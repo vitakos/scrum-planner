@@ -2,6 +2,7 @@ package com.scrumplanner.core.workitem;
 
 import com.scrumplanner.core.common.ConflictException;
 import com.scrumplanner.core.common.NotFoundException;
+import com.scrumplanner.core.content.WorkItemContentService;
 import com.scrumplanner.core.project.Project;
 import com.scrumplanner.core.project.ProjectRepository;
 import com.scrumplanner.core.workflow.WorkflowDefinition;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,6 +37,7 @@ public class WorkItemService {
     private final WorkflowStateRepository workflowStateRepository;
     private final WorkflowTransitionRepository workflowTransitionRepository;
     private final WorkItemTypeCatalogRepository typeCatalogRepository;
+    private final WorkItemContentService workItemContentService;
 
     public WorkItemService(
             WorkItemRepository workItemRepository,
@@ -43,7 +46,8 @@ public class WorkItemService {
             WorkflowDefinitionRepository workflowDefinitionRepository,
             WorkflowStateRepository workflowStateRepository,
             WorkflowTransitionRepository workflowTransitionRepository,
-            WorkItemTypeCatalogRepository typeCatalogRepository
+            WorkItemTypeCatalogRepository typeCatalogRepository,
+            WorkItemContentService workItemContentService
     ) {
         this.workItemRepository = workItemRepository;
         this.workItemStateLogRepository = workItemStateLogRepository;
@@ -52,6 +56,7 @@ public class WorkItemService {
         this.workflowStateRepository = workflowStateRepository;
         this.workflowTransitionRepository = workflowTransitionRepository;
         this.typeCatalogRepository = typeCatalogRepository;
+        this.workItemContentService = workItemContentService;
     }
 
     @Transactional
@@ -76,7 +81,16 @@ public class WorkItemService {
         WorkItem item = workItemRepository.save(
                 new WorkItem(projectId, request.type(), request.title().trim(), initialState.getId(), seq, parentId)
         );
-        return toResponse(item, project.getKey(), context);
+
+        String content = request.content();
+        if (content != null) {
+            // item.getId() is already populated: WorkItem uses a client-generated
+            // (GenerationType.UUID) id, and item stays managed within this
+            // transaction, so setting contentRef here is enough — no extra save.
+            item.setContentRef(workItemContentService.saveContent(null, item.getId(), content));
+        }
+
+        return toResponse(item, project.getKey(), context, content);
     }
 
     @Transactional(readOnly = true)
@@ -86,12 +100,20 @@ public class WorkItemService {
                 ? workItemRepository.findAllByProjectIdAndTypeOrderBySeqAsc(projectId, type)
                 : workItemRepository.findAllByProjectIdOrderBySeqAsc(projectId);
 
+        List<String> contentRefs = items.stream()
+                .map(WorkItem::getContentRef)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<String, String> contentByRef = workItemContentService.findContentByRefs(contentRefs);
+
         Map<String, TypeWorkflowContext> contextsByType = new HashMap<>();
         return items.stream()
                 .map(item -> {
                     TypeWorkflowContext context = contextsByType.computeIfAbsent(
                             item.getType(), t -> loadContext(projectId, t));
-                    return toResponse(item, project.getKey(), context);
+                    String content = item.getContentRef() != null ? contentByRef.get(item.getContentRef()) : null;
+                    return toResponse(item, project.getKey(), context, content);
                 })
                 .toList();
     }
@@ -100,7 +122,8 @@ public class WorkItemService {
     public WorkItemResponse getWorkItem(UUID projectId, UUID workItemId) {
         Project project = requireProject(projectId);
         WorkItem item = requireWorkItem(projectId, workItemId);
-        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()));
+        String content = workItemContentService.findContent(item.getContentRef()).orElse(null);
+        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), content);
     }
 
     @Transactional
@@ -116,7 +139,14 @@ public class WorkItemService {
         }
         item.reparent(parentId);
 
-        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()));
+        String content = request.content();
+        if (content != null) {
+            item.setContentRef(workItemContentService.saveContent(item.getContentRef(), item.getId(), content));
+        } else {
+            content = workItemContentService.findContent(item.getContentRef()).orElse(null);
+        }
+
+        return toResponse(item, project.getKey(), loadContext(projectId, item.getType()), content);
     }
 
     @Transactional
@@ -138,12 +168,14 @@ public class WorkItemService {
         workItemStateLogRepository.save(new WorkItemStateLog(item.getId(), item.getStateId(), transition.getToStateId()));
         item.moveToState(transition.getToStateId());
 
-        return toResponse(item, project.getKey(), context);
+        String content = workItemContentService.findContent(item.getContentRef()).orElse(null);
+        return toResponse(item, project.getKey(), context, content);
     }
 
     @Transactional
     public void deleteWorkItem(UUID projectId, UUID workItemId) {
         WorkItem item = requireWorkItem(projectId, workItemId);
+        workItemContentService.deleteContent(item.getContentRef());
         workItemRepository.delete(item);
     }
 
@@ -179,7 +211,7 @@ public class WorkItemService {
         }
     }
 
-    private WorkItemResponse toResponse(WorkItem item, String projectKey, TypeWorkflowContext context) {
+    private WorkItemResponse toResponse(WorkItem item, String projectKey, TypeWorkflowContext context, String content) {
         WorkflowState state = context.statesById().get(item.getStateId());
         List<AvailableTransitionResponse> available = context.transitions().stream()
                 .filter(t -> t.getFromStateId().equals(item.getStateId()))
@@ -208,6 +240,7 @@ public class WorkItemService {
                 item.getType(),
                 context.typeName(),
                 item.getTitle(),
+                content,
                 item.getStateId(),
                 state != null ? state.getName() : "?",
                 state != null ? state.getCategory().name() : "?",

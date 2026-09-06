@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record UpdateWorkItemRequest(
         @NotBlank @Size(max = 500) String title,
-        UUID parentId
+        UUID parentId,
+        @Size(max = 200_000) String content
 ) {
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { api } from '../services/api.js';
 import { resolveStateColor } from '../utils/stateColors.js';
 import { parentTypesFor, childTypesFor } from '../utils/workItemHierarchy.js';
+import WorkItemDetailModal from './WorkItemDetailModal.jsx';
 
 function parentCandidatesFor(type, allItems) {
   const parentTypes = parentTypesFor(type);
@@ -26,6 +27,7 @@ export default function WorkItemBoard({
   const [busyId, setBusyId] = useState(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState(null);
+  const [detailItem, setDetailItem] = useState(null);
 
   const states = [...workflow.states].sort((a, b) => a.sortOrder - b.sortOrder);
   const itemsByState = Object.fromEntries(states.map((s) => [s.id, []]));
@@ -148,7 +150,17 @@ export default function WorkItemBoard({
                 return (
                   <div key={item.id} className="board-card">
                     <div className="board-card-key">{item.key}</div>
-                    <div className="board-card-title">{item.title}</div>
+                    <div
+                      className="board-card-title"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setDetailItem(item)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') setDetailItem(item);
+                      }}
+                    >
+                      {item.title}
+                    </div>
                     {item.parentKey && (
                       <div className="board-card-parent">
                         Parent: {item.parentKey} — {item.parentTitle}
@@ -209,6 +221,13 @@ export default function WorkItemBoard({
                         </button>
                       ))}
                       <button
+                        type="button"
+                        className="link-button"
+                        onClick={() => setDetailItem(item)}
+                      >
+                        {item.content ? 'Edit description' : 'Add description'}
+                      </button>
+                      <button
                         className="link-button"
                         disabled={busyId === item.id}
                         onClick={() => handleDelete(item)}
@@ -223,6 +242,18 @@ export default function WorkItemBoard({
           </div>
         ))}
       </div>
+
+      {detailItem && (
+        <WorkItemDetailModal
+          projectId={projectId}
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          onSaved={(updated) => {
+            onItemChanged(updated);
+            setDetailItem(null);
+          }}
+        />
+      )}
     </div>
   );
 }

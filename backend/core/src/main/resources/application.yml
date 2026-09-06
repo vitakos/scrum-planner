@@ -8,6 +8,9 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/scrum_planner}
     username: ${SPRING_DATASOURCE_USERNAME:scrum_planner}
     password: ${SPRING_DATASOURCE_PASSWORD:scrum_planner}
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://scrum_planner:scrum_planner@localhost:27017/scrum_planner?authSource=admin}
   jpa:
     open-in-view: false
     hibernate:

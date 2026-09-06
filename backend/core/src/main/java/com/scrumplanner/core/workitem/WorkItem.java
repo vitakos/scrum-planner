@@ -11,13 +11,13 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 /**
- * Note: the underlying work_item table also has assignee_id, reporter_id,
- * sprint_id and content_ref columns for people, sprints and the
- * MongoDB-backed description/content document — still to come. They're
+ * Note: the underlying work_item table also has assignee_id, reporter_id and
+ * sprint_id columns for people and sprints — still to come. They're
  * intentionally left unmapped here (all nullable in the DB); Hibernate's
  * schema validation only checks the columns an entity declares, so this is
- * safe to extend later without a migration. parent_id (hierarchy) is now
- * mapped below.
+ * safe to extend later without a migration. parent_id (hierarchy) and
+ * content_ref (the MongoDB-backed content document, see
+ * WorkItemContentService) are now mapped below.
  */
 @Entity
 @Table(name = "work_item")
@@ -41,6 +41,9 @@ public class WorkItem {
 
     @Column(name = "parent_id")
     private UUID parentId;
+
+    @Column(name = "content_ref")
+    private String contentRef;
 
     @Column(nullable = false)
     private int seq;
@@ -93,6 +96,14 @@ public class WorkItem {
 
     public UUID getParentId() {
         return parentId;
+    }
+
+    public String getContentRef() {
+        return contentRef;
+    }
+
+    public void setContentRef(String contentRef) {
+        this.contentRef = contentRef;
     }
 
     public int getSeq() {

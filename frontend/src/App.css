@@ -463,6 +463,46 @@ textarea {
 .board-card-title {
   margin: 2px 0 8px;
   font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.board-card-title:hover {
+  text-decoration: underline;
+}
+
+.work-item-detail-panel {
+  padding: 24px;
+}
+
+.work-item-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.work-item-detail-header h3 {
+  margin: 2px 0 0;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.work-item-detail-panel .EasyMDEContainer .CodeMirror {
+  min-height: 200px;
+}
+
+.work-item-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .board-card-actions {

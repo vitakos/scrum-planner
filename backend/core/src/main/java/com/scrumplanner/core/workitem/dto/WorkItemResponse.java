@@ -11,6 +11,7 @@ public record WorkItemResponse(
         String type,
         String typeName,
         String title,
+        String content,
         UUID stateId,
         String stateName,
         String stateCategory,
