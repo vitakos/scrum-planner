@@ -28,6 +28,8 @@ export const api = {
   getWorkItemByKey: (key) => request(`/api/work-items/by-key/${encodeURIComponent(key)}`),
   createProject: (payload) =>
     request('/api/projects', { method: 'POST', body: JSON.stringify(payload) }),
+  updateProject: (id, payload) =>
+    request(`/api/projects/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
 
   listWorkItemTypes: () => request('/api/work-item-types'),
 

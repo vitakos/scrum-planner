@@ -12,9 +12,29 @@ function formatDate(value) {
   }
 }
 
-export default function WorkItemDetailModal({ projectId, item, items, customFieldDefs, onClose, onSaved }) {
-  const [content, setContent] = useState(item.content ?? '');
-  const [customFieldValues, setCustomFieldValues] = useState(item.customFields ?? {});
+// Doubles as the "add child" popover: with mode="create" there's no
+// existing `item` yet, so the title starts out editable and only the
+// fields that make sense for a not-yet-created item are shown (type,
+// parent). With the default mode="edit" everything behaves as before,
+// plus the title can now be renamed via the pencil button next to it.
+export default function WorkItemDetailModal({
+  projectId,
+  item,
+  items,
+  customFieldDefs,
+  onClose,
+  onSaved,
+  mode = 'edit',
+  createType,
+  createTypeName,
+  parent
+}) {
+  const isCreate = mode === 'create';
+
+  const [title, setTitle] = useState(item?.title ?? '');
+  const [editingTitle, setEditingTitle] = useState(isCreate);
+  const [content, setContent] = useState(item?.content ?? '');
+  const [customFieldValues, setCustomFieldValues] = useState(item?.customFields ?? {});
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -24,7 +44,16 @@ export default function WorkItemDetailModal({ projectId, item, items, customFiel
     setCustomFieldValues((prev) => ({ ...prev, [name]: value }));
   }
 
+  function cancelTitleEdit() {
+    setTitle(item?.title ?? '');
+    setEditingTitle(false);
+  }
+
   async function handleSave() {
+    if (!title.trim()) {
+      setError('Title is required');
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -36,13 +65,21 @@ export default function WorkItemDetailModal({ projectId, item, items, customFiel
         Object.entries(customFieldValues).filter(([name]) => validNames.has(name))
       );
 
-      const updated = await api.updateWorkItem(projectId, item.id, {
-        title: item.title,
-        parentId: item.parentId ?? null,
-        content,
-        customFields: payloadCustomFields
-      });
-      onSaved(updated);
+      const saved = isCreate
+        ? await api.createWorkItem(projectId, {
+            type: createType,
+            title: title.trim(),
+            parentId: parent?.id ?? null,
+            content,
+            customFields: payloadCustomFields
+          })
+        : await api.updateWorkItem(projectId, item.id, {
+            title: title.trim(),
+            parentId: item.parentId ?? null,
+            content,
+            customFields: payloadCustomFields
+          });
+      onSaved(saved);
       onClose();
     } catch (err) {
       setError(err.message);
@@ -56,8 +93,45 @@ export default function WorkItemDetailModal({ projectId, item, items, customFiel
       <div className="modal-panel work-item-detail-panel" onClick={(e) => e.stopPropagation()}>
         <div className="work-item-detail-header">
           <div>
-            <div className="board-card-key">{item.key}</div>
-            <h3>{item.title}</h3>
+            <div className="board-card-key">{isCreate ? `New ${createTypeName}` : item.key}</div>
+            {editingTitle ? (
+              <div className="title-edit-row">
+                <input
+                  type="text"
+                  className="title-edit-input"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  maxLength={500}
+                  autoFocus
+                  disabled={saving}
+                />
+                {!isCreate && (
+                  <button
+                    type="button"
+                    className="icon-button"
+                    onClick={cancelTitleEdit}
+                    disabled={saving}
+                    aria-label="Cancel title edit"
+                    title="Cancel"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ) : (
+              <h3 className="title-display-row">
+                {title}
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setEditingTitle(true)}
+                  aria-label="Edit title"
+                  title="Edit title"
+                >
+                  ✎
+                </button>
+              </h3>
+            )}
           </div>
           <button type="button" className="link-button" onClick={onClose} disabled={saving}>
             Close
@@ -69,28 +143,44 @@ export default function WorkItemDetailModal({ projectId, item, items, customFiel
         <dl className="work-item-detail-facts">
           <div>
             <dt>Type</dt>
-            <dd>{item.typeName}</dd>
+            <dd>{isCreate ? createTypeName : item.typeName}</dd>
           </div>
-          <div>
-            <dt>State</dt>
-            <dd>{item.stateName}</dd>
-          </div>
+          {!isCreate && (
+            <div>
+              <dt>State</dt>
+              <dd>{item.stateName}</dd>
+            </div>
+          )}
           <div>
             <dt>Parent</dt>
-            <dd>{item.parentKey ? `${item.parentKey} — ${item.parentTitle}` : '—'}</dd>
+            <dd>
+              {isCreate
+                ? parent
+                  ? `${parent.key} — ${parent.title}`
+                  : '—'
+                : item.parentKey
+                  ? `${item.parentKey} — ${item.parentTitle}`
+                  : '—'}
+            </dd>
           </div>
-          <div>
-            <dt>Child items</dt>
-            <dd>{item.childCount}</dd>
-          </div>
-          <div>
-            <dt>Created</dt>
-            <dd>{formatDate(item.createdAt)}</dd>
-          </div>
-          <div>
-            <dt>Updated</dt>
-            <dd>{formatDate(item.updatedAt)}</dd>
-          </div>
+          {!isCreate && (
+            <div>
+              <dt>Child items</dt>
+              <dd>{item.childCount}</dd>
+            </div>
+          )}
+          {!isCreate && (
+            <div>
+              <dt>Created</dt>
+              <dd>{formatDate(item.createdAt)}</dd>
+            </div>
+          )}
+          {!isCreate && (
+            <div>
+              <dt>Updated</dt>
+              <dd>{formatDate(item.updatedAt)}</dd>
+            </div>
+          )}
         </dl>
 
         <label className="field-label" htmlFor="work-item-description">
@@ -127,7 +217,7 @@ export default function WorkItemDetailModal({ projectId, item, items, customFiel
             Cancel
           </button>
           <button type="button" onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? 'Saving…' : isCreate ? 'Create' : 'Save'}
           </button>
         </div>
       </div>

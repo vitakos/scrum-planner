@@ -27,6 +27,9 @@ public class Project {
     @Column
     private String description;
 
+    @Column(name = "repository_url")
+    private String repositoryUrl;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -60,6 +63,10 @@ public class Project {
         return description;
     }
 
+    public String getRepositoryUrl() {
+        return repositoryUrl;
+    }
+
     public OffsetDateTime getCreatedAt() {
         return createdAt;
     }
@@ -67,6 +74,18 @@ public class Project {
     public void rename(String name, String description) {
         this.name = name;
         this.description = description;
+    }
+
+    public void updateRepositoryUrl(String repositoryUrl) {
+        this.repositoryUrl = trimToNull(repositoryUrl);
+    }
+
+    private static String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     /**

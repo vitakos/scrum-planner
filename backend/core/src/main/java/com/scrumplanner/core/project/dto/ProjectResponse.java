@@ -10,6 +10,7 @@ public record ProjectResponse(
         String key,
         String name,
         String description,
+        String repositoryUrl,
         OffsetDateTime createdAt
 ) {
     public static ProjectResponse from(Project project) {
@@ -18,6 +19,7 @@ public record ProjectResponse(
                 project.getKey(),
                 project.getName(),
                 project.getDescription(),
+                project.getRepositoryUrl(),
                 project.getCreatedAt()
         );
     }

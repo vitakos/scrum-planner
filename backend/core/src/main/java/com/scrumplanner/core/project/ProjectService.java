@@ -3,6 +3,7 @@ package com.scrumplanner.core.project;
 import com.scrumplanner.core.common.ConflictException;
 import com.scrumplanner.core.common.NotFoundException;
 import com.scrumplanner.core.project.dto.CreateProjectRequest;
+import com.scrumplanner.core.project.dto.UpdateProjectRequest;
 import com.scrumplanner.core.workflow.DefaultWorkflowSeeder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +45,13 @@ public class ProjectService {
 
         Project project = projectRepository.save(new Project(key, request.name().trim(), trimToNull(request.description())));
         defaultWorkflowSeeder.seedDefaultWorkflows(project.getId());
+        return project;
+    }
+
+    @Transactional
+    public Project updateProject(UUID id, UpdateProjectRequest request) {
+        Project project = getProject(id);
+        project.updateRepositoryUrl(request.repositoryUrl());
         return project;
     }
 

@@ -100,6 +100,10 @@ export default function App() {
     setShowAddProject(false);
   }
 
+  function handleProjectUpdated(project) {
+    setProjects((prev) => prev.map((p) => (p.id === project.id ? project : p)));
+  }
+
   function handleItemOpened(item) {
     navigate(`/${item.key}`);
   }
@@ -165,7 +169,11 @@ export default function App() {
             onItemClosed={handleItemClosed}
           />
         ) : (
-          <ConfigurePage key={selectedProject.id} project={selectedProject} />
+          <ConfigurePage
+            key={selectedProject.id}
+            project={selectedProject}
+            onProjectUpdated={handleProjectUpdated}
+          />
         )}
       </main>
 

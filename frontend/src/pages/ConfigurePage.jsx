@@ -3,7 +3,7 @@ import { api } from '../services/api.js';
 import WorkflowEditor from '../components/WorkflowEditor.jsx';
 import CustomFieldsEditor from '../components/CustomFieldsEditor.jsx';
 
-export default function ConfigurePage({ project }) {
+export default function ConfigurePage({ project, onProjectUpdated }) {
   const [workflows, setWorkflows] = useState([]);
   const [fieldCatalogs, setFieldCatalogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,9 +71,15 @@ export default function ConfigurePage({ project }) {
         </nav>
 
         <section className="workflow-panel">
-          {activeType ? (
-            <>
-              <nav className="tab-nav configure-section-nav">
+          <nav className="tab-nav configure-section-nav">
+            <button
+              className={section === 'general' ? 'tab-nav-item active' : 'tab-nav-item'}
+              onClick={() => setSection('general')}
+            >
+              General
+            </button>
+            {activeType && (
+              <>
                 <button
                   className={section === 'workflow' ? 'tab-nav-item active' : 'tab-nav-item'}
                   onClick={() => setSection('workflow')}
@@ -86,31 +92,83 @@ export default function ConfigurePage({ project }) {
                 >
                   Custom Fields
                 </button>
-              </nav>
+              </>
+            )}
+          </nav>
 
-              {section === 'workflow' && activeWorkflow && (
-                <WorkflowEditor
-                  key={activeWorkflow.workItemType}
-                  projectId={project.id}
-                  workflow={activeWorkflow}
-                  onChange={(updater) => updateWorkflow(activeWorkflow.workItemType, updater)}
-                />
-              )}
-
-              {section === 'fields' && activeFieldCatalog && (
-                <CustomFieldsEditor
-                  key={activeFieldCatalog.workItemType}
-                  projectId={project.id}
-                  catalog={activeFieldCatalog}
-                  onChange={(updater) => updateFieldCatalog(activeFieldCatalog.workItemType, updater)}
-                />
-              )}
-            </>
-          ) : (
-            <p>No work item types configured for this project.</p>
+          {section === 'general' && (
+            <GeneralSection project={project} onProjectUpdated={onProjectUpdated} />
           )}
+
+          {section !== 'general' &&
+            (activeType ? (
+              <>
+                {section === 'workflow' && activeWorkflow && (
+                  <WorkflowEditor
+                    key={activeWorkflow.workItemType}
+                    projectId={project.id}
+                    workflow={activeWorkflow}
+                    onChange={(updater) => updateWorkflow(activeWorkflow.workItemType, updater)}
+                  />
+                )}
+
+                {section === 'fields' && activeFieldCatalog && (
+                  <CustomFieldsEditor
+                    key={activeFieldCatalog.workItemType}
+                    projectId={project.id}
+                    catalog={activeFieldCatalog}
+                    onChange={(updater) => updateFieldCatalog(activeFieldCatalog.workItemType, updater)}
+                  />
+                )}
+              </>
+            ) : (
+              <p>No work item types configured for this project.</p>
+            ))}
         </section>
       </div>
     </div>
+  );
+}
+
+function GeneralSection({ project, onProjectUpdated }) {
+  const [repositoryUrl, setRepositoryUrl] = useState(project.repositoryUrl ?? '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setRepositoryUrl(project.repositoryUrl ?? '');
+  }, [project.id, project.repositoryUrl]);
+
+  async function handleSave(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      const updated = await api.updateProject(project.id, { repositoryUrl });
+      setRepositoryUrl(updated.repositoryUrl ?? '');
+      onProjectUpdated?.(updated);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSave} className="state-add-form">
+      {error && <p className="error-banner">{error}</p>}
+      <label>
+        Repository URL
+        <input
+          type="text"
+          value={repositoryUrl}
+          onChange={(e) => setRepositoryUrl(e.target.value)}
+          placeholder="https://github.com/org/repo"
+        />
+      </label>
+      <button type="submit" disabled={busy}>
+        {busy ? 'Saving…' : 'Save'}
+      </button>
+    </form>
   );
 }
