@@ -155,20 +155,30 @@ function GeneralSection({ project, onProjectUpdated }) {
   }
 
   return (
-    <form onSubmit={handleSave} className="state-add-form">
-      {error && <p className="error-banner">{error}</p>}
-      <label>
-        Repository URL
-        <input
-          type="text"
-          value={repositoryUrl}
-          onChange={(e) => setRepositoryUrl(e.target.value)}
-          placeholder="https://github.com/org/repo"
-        />
-      </label>
-      <button type="submit" disabled={busy}>
-        {busy ? 'Saving…' : 'Save'}
-      </button>
-    </form>
+    <div>
+      {project.repositoryUrl && (
+        <p className="project-repository-url">
+          Repository:{' '}
+          <a href={project.repositoryUrl} target="_blank" rel="noreferrer">
+            {project.repositoryUrl}
+          </a>
+        </p>
+      )}
+      <form onSubmit={handleSave} className="state-add-form">
+        <label>
+          Repository URL
+          <input
+            type="text"
+            value={repositoryUrl}
+            onChange={(e) => setRepositoryUrl(e.target.value)}
+            placeholder="https://github.com/org/repo"
+          />
+        </label>
+        {error && <span className="field-error">{error}</span>}
+        <button type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
+      </form>
+    </div>
   );
 }

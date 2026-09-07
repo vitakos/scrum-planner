@@ -35,6 +35,10 @@
     {
       "file": "0009_custom_field_definition_rich_text.sql",
       "appliedAt": "2026-09-06T14:06:56.901Z"
+    },
+    {
+      "file": "0010_project_repository_url.sql",
+      "appliedAt": "2026-09-07T18:36:23.144Z"
     }
   ]
 }

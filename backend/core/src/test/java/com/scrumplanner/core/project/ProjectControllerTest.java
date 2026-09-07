@@ -91,4 +91,25 @@ class ProjectControllerTest {
                         .content(objectMapper.writeValueAsString(new UpdateProjectRequest("not a url"))))
                 .andExpect(status().isBadRequest());
     }
+
+    /**
+     * AISC-13: a configured repository URL must be readable back through the
+     * plain GET /api/projects/{id} endpoint (not only right after a PUT), so
+     * the frontend can display it. Exercises GET in isolation, independent of
+     * the update flow already covered above.
+     */
+    @Test
+    void gettingProjectWithConfiguredRepositoryUrlReturnsIt() throws Exception {
+        UUID projectId = UUID.randomUUID();
+        String repositoryUrl = "git@github.com:example/scrum-planner.git";
+
+        Project project = new Project("SPAI", "Scrum Planner", null);
+        project.updateRepositoryUrl(repositoryUrl);
+
+        when(projectService.getProject(projectId)).thenReturn(project);
+
+        mockMvc.perform(get("/api/projects/{id}", projectId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.repositoryUrl").value(repositoryUrl));
+    }
 }

@@ -28,3 +28,48 @@ Yes — this works both ways:
   happen, or take the mouse back at any point.
 
 Either way, no separate screen-share is needed — pick whichever browser is already open and go.
+
+## Accessing the backend REST API directly
+
+The backend (`backend/core`, Spring Boot) is a REST API with **no authentication** for local dev. When
+the stack is running (`docker compose up` in `infra/`, or `./gradlew bootRun` / your IDE), it's reachable at:
+
+- `http://localhost:8080` when hit from the **host machine** (browser, `curl` from PowerShell/WSL, Claude's
+  built-in browser via `Claude_Browser__navigate` / `Claude_Browser__javascript_tool` with `fetch(...)`).
+  Port is configurable via `BACKEND_PORT` in `infra/.env` (defaults to 8080).
+- `http://backend:8080` from **inside** another container on the `scrum-planner` compose network (e.g. the
+  frontend container's nginx same-origin proxy — see `frontend/nginx.conf`).
+
+Note for Claude specifically: a `device_bash` shell (the sandboxed Linux VM behind the remote-devices bridge)
+does **not** share the host's network namespace, so `curl http://localhost:8080/...` from there will fail
+with "Connection refused" even while the stack is up on the user's machine. Use the **built-in browser**
+(`Claude_Browser__javascript_tool` with `fetch`) to reach the API instead — it runs on the actual host.
+
+### Discovering what the API offers
+
+There's no Swagger/OpenAPI exposed (no springdoc dependency). To see what's available, read the
+`@RestController` classes directly — each maps 1:1 to a REST resource:
+
+| Resource | Controller | Base path |
+|---|---|---|
+| Projects | `backend/core/.../project/ProjectController.java` | `/api/projects` |
+| Work items (Epics, Features, User Stories, Tasks, Bugs, Test Cases, Test Runs) | `.../workitem/WorkItemController.java` | `/api/projects/{projectId}/work-items` |
+| Work item lookup by human key (e.g. `AISC-13`) | `.../workitem/WorkItemLookupController.java` | `/api/work-items/by-key/{key}` |
+| Work item type catalog | `.../worktype/WorkItemTypeController.java` | `/api/work-item-types` |
+| Workflows (states/transitions per type) | `.../workflow/WorkflowController.java` | `/api/projects/{projectId}/workflows` |
+| Custom field definitions | `.../customfield/CustomFieldController.java` | `/api/projects/{projectId}/custom-fields` |
+
+All request/response shapes are plain DTOs (Java records) next to each controller, in a `dto/` subpackage —
+read those instead of guessing a payload shape. Errors come back as JSON
+(`{timestamp, status, error, message}`, see `common/ApiExceptionHandler.java`), with `message` holding the
+first field-validation error when a request is rejected (HTTP 400).
+
+Useful starting points:
+- `GET /api/projects` — list projects (grab a project's `id`/`key`).
+- `GET /api/work-items/by-key/AISC-13` — fetch a work item (Epic/Feature/User Story/Task/…) by its
+  human-readable key without needing the project id first. The response includes `parentId`/`parentKey`
+  and `childCount`, useful for walking the backlog hierarchy from a single story.
+- `POST /api/projects/{projectId}/work-items` with `{"type":"task","title":"...","parentId":"<uuid>"}` —
+  create a child task under any work item (e.g. to track an implementation plan's subtasks under a user
+  story). `type` must be one of the codes from `GET /api/work-item-types` (`epic`, `feature`, `user_story`,
+  `task`, `bug`, `test_case`, `test_run`).

@@ -114,6 +114,20 @@ textarea {
   margin-top: -8px;
 }
 
+.project-repository-url {
+  color: var(--text-muted);
+  margin: 0 0 16px;
+}
+
+.project-repository-url a {
+  color: inherit;
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
 /* Wizard */
 .wizard {
   display: flex;
