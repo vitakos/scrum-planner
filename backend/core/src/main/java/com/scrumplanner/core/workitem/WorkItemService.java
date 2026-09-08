@@ -11,6 +11,7 @@ import com.scrumplanner.core.project.ProjectRepository;
 import com.scrumplanner.core.workflow.WorkflowDefinition;
 import com.scrumplanner.core.workflow.WorkflowDefinitionRepository;
 import com.scrumplanner.core.workflow.WorkflowState;
+import com.scrumplanner.core.workflow.WorkflowStateCategory;
 import com.scrumplanner.core.workflow.WorkflowStateRepository;
 import com.scrumplanner.core.workflow.WorkflowTransition;
 import com.scrumplanner.core.workflow.WorkflowTransitionRepository;
@@ -23,6 +24,7 @@ import com.scrumplanner.core.worktype.WorkItemTypeCatalogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.AbstractMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +105,11 @@ public class WorkItemService {
 
     @Transactional(readOnly = true)
     public List<WorkItemResponse> listWorkItems(UUID projectId, String type) {
+        return listWorkItems(projectId, type, false);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WorkItemResponse> listWorkItems(UUID projectId, String type, boolean excludeDoneCategory) {
         Project project = requireProject(projectId);
         List<WorkItem> items = type != null
                 ? workItemRepository.findAllByProjectIdAndTypeOrderBySeqAsc(projectId, type)
@@ -120,6 +127,18 @@ public class WorkItemService {
                 .map(item -> {
                     TypeWorkflowContext context = contextsByType.computeIfAbsent(
                             item.getType(), t -> loadContext(projectId, t));
+                    return new AbstractMap.SimpleEntry<>(item, context);
+                })
+                .filter(entry -> {
+                    if (!excludeDoneCategory) {
+                        return true;
+                    }
+                    WorkflowState state = entry.getValue().statesById().get(entry.getKey().getStateId());
+                    return state == null || state.getCategory() != WorkflowStateCategory.done;
+                })
+                .map(entry -> {
+                    WorkItem item = entry.getKey();
+                    TypeWorkflowContext context = entry.getValue();
                     WorkItemContent content = item.getContentRef() != null
                             ? contentByRef.getOrDefault(item.getContentRef(), WorkItemContent.EMPTY)
                             : WorkItemContent.EMPTY;

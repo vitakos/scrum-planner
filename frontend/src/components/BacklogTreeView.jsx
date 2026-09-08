@@ -12,7 +12,9 @@ export default function BacklogTreeView({
   openDetail,
   onAddChild,
   onAddRoot,
-  parentTypesFor
+  parentTypesFor,
+  hideClosed,
+  onToggleHideClosed
 }) {
   const [titleFilter, setTitleFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -273,6 +275,15 @@ export default function BacklogTreeView({
             </option>
           ))}
         </select>
+
+        <label className={hideClosed ? 'tree-toggle-control active' : 'tree-toggle-control'}>
+          <input
+            type="checkbox"
+            checked={hideClosed}
+            onChange={(e) => onToggleHideClosed?.(e.target.checked)}
+          />
+          Hide closed items
+        </label>
 
         <div className="tree-toolbar-spacer" />
 

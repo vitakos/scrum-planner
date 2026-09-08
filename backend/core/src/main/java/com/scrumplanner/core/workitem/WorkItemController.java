@@ -33,9 +33,10 @@ public class WorkItemController {
     @GetMapping
     public List<WorkItemResponse> list(
             @PathVariable UUID projectId,
-            @RequestParam(required = false) String type
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false, defaultValue = "false") boolean excludeDoneCategory
     ) {
-        return workItemService.listWorkItems(projectId, type);
+        return workItemService.listWorkItems(projectId, type, excludeDoneCategory);
     }
 
     @GetMapping("/{id}")

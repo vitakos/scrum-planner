@@ -86,8 +86,13 @@ export const api = {
       method: 'DELETE'
     }),
 
-  listWorkItems: (projectId, type) =>
-    request(`/api/projects/${projectId}/work-items${type ? `?type=${encodeURIComponent(type)}` : ''}`),
+  listWorkItems: (projectId, type, excludeDoneCategory) => {
+    const params = new URLSearchParams();
+    if (type) params.set('type', type);
+    if (excludeDoneCategory) params.set('excludeDoneCategory', 'true');
+    const query = params.toString();
+    return request(`/api/projects/${projectId}/work-items${query ? `?${query}` : ''}`);
+  },
   createWorkItem: (projectId, payload) =>
     request(`/api/projects/${projectId}/work-items`, { method: 'POST', body: JSON.stringify(payload) }),
   updateWorkItem: (projectId, workItemId, payload) =>

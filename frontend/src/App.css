@@ -846,6 +846,25 @@ textarea {
   flex: 1;
 }
 
+.tree-toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color, #d0d5dd);
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.tree-toggle-control.active {
+  background-color: var(--accent-color-soft, #e0e9ff);
+  border-color: var(--accent-color, #3b5bdb);
+  font-weight: 600;
+}
+
 .tree-table {
   display: flex;
   flex-direction: column;

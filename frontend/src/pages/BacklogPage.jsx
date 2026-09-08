@@ -15,6 +15,8 @@ export default function BacklogPage({ project, focusItemKey, onItemOpened, onIte
   const [parentFilter, setParentFilter] = useState(null);
   const [presetParentId, setPresetParentId] = useState(null);
   const [customFieldCatalogs, setCustomFieldCatalogs] = useState([]);
+  const [hideClosed, setHideClosed] = useState(false);
+  const [itemsLoading, setItemsLoading] = useState(false);
   // Tree view's popover: editing an existing item, or creating a new one
   // (root-level or as a child) — see WorkItemDetailModal's mode prop.
   const [modal, setModal] = useState(null);
@@ -24,13 +26,22 @@ export default function BacklogPage({ project, focusItemKey, onItemOpened, onIte
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
 
+  // Re-fetch just the work item list (not workflows/custom fields) whenever
+  // the "Hide closed items" toggle changes, so the tree/board rebuild from a
+  // freshly filtered response rather than filtering client-side.
+  useEffect(() => {
+    if (loading) return;
+    refetchItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hideClosed]);
+
   async function loadAll() {
     setLoading(true);
     setError(null);
     try {
       const [workflowList, itemList, fieldCatalogs] = await Promise.all([
         api.listWorkflows(project.id),
-        api.listWorkItems(project.id),
+        api.listWorkItems(project.id, undefined, hideClosed),
         api.listCustomFields(project.id)
       ]);
       setWorkflows(workflowList);
@@ -41,6 +52,19 @@ export default function BacklogPage({ project, focusItemKey, onItemOpened, onIte
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function refetchItems() {
+    setItemsLoading(true);
+    setError(null);
+    try {
+      const itemList = await api.listWorkItems(project.id, undefined, hideClosed);
+      setItems(itemList);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setItemsLoading(false);
     }
   }
 
@@ -158,7 +182,10 @@ export default function BacklogPage({ project, focusItemKey, onItemOpened, onIte
             onAddChild={openTreeAddChild}
             onAddRoot={openTreeAddRoot}
             parentTypesFor={parentTypesFor}
+            hideClosed={hideClosed}
+            onToggleHideClosed={setHideClosed}
           />
+          {itemsLoading && <p className="page-center">Refreshing…</p>}
           {modal?.mode === 'edit' && (
             <WorkItemDetailModal
               projectId={project.id}
