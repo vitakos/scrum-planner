@@ -1,0 +1,28 @@
+import { describe, it, expect } from 'vitest';
+import { parentTypesFor, childTypesFor } from './workItemHierarchy.js';
+
+describe('workItemHierarchy', () => {
+  describe('parentTypesFor', () => {
+    it('returns the natural parent types for a defect', () => {
+      expect(parentTypesFor('defect')).toEqual(['user_story']);
+    });
+
+    it('returns an empty array for a type with no configured parent', () => {
+      expect(parentTypesFor('epic')).toEqual([]);
+    });
+
+    it('returns an empty array for an unknown type', () => {
+      expect(parentTypesFor('not_a_real_type')).toEqual([]);
+    });
+  });
+
+  describe('childTypesFor', () => {
+    it('includes defect among the natural child types of a user story', () => {
+      expect(childTypesFor('user_story')).toEqual(expect.arrayContaining(['defect']));
+    });
+
+    it('returns an empty array for a type with no configured children', () => {
+      expect(childTypesFor('test_run')).toEqual([]);
+    });
+  });
+});
