@@ -39,6 +39,10 @@
     {
       "file": "0010_project_repository_url.sql",
       "appliedAt": "2026-09-07T18:36:23.144Z"
+    },
+    {
+      "file": "0011_rename_bug_type_to_defect.sql",
+      "appliedAt": "2026-09-08T09:22:36.124Z"
     }
   ]
 }
