@@ -192,6 +192,41 @@ describe('ChatMessageList (AISC-92, AISC-96, AISC-104)', () => {
   });
 });
 
+describe('ChatMessageList kind-based styling (AISC-19, AISC-20)', () => {
+  it('renders a distinct badge and class for a GAP_ANALYSIS message', () => {
+    const messages = [
+      { id: '1', sender: 'Assistant', text: 'Gap analysis text', timestamp: new Date(), kind: 'GAP_ANALYSIS' },
+    ];
+
+    const { container } = render(<ChatMessageList messages={messages} />);
+
+    expect(screen.getByText('Gap Analysis')).toBeInTheDocument();
+    expect(container.querySelector('.chat-message--gap-analysis')).toBeInTheDocument();
+  });
+
+  it('renders a distinct badge and class for a FOLLOW_UP message', () => {
+    const messages = [
+      { id: '1', sender: 'Assistant', text: 'Follow-up answer', timestamp: new Date(), kind: 'FOLLOW_UP' },
+    ];
+
+    const { container } = render(<ChatMessageList messages={messages} />);
+
+    expect(screen.getByText('Follow-up')).toBeInTheDocument();
+    expect(container.querySelector('.chat-message--follow-up')).toBeInTheDocument();
+  });
+
+  it('renders plain messages without a kind badge or distinct class', () => {
+    const messages = [{ id: '1', sender: 'You', text: 'Hello', timestamp: new Date() }];
+
+    const { container } = render(<ChatMessageList messages={messages} />);
+
+    expect(screen.queryByText('Gap Analysis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Follow-up')).not.toBeInTheDocument();
+    expect(container.querySelector('.chat-message--gap-analysis')).not.toBeInTheDocument();
+    expect(container.querySelector('.chat-message--follow-up')).not.toBeInTheDocument();
+  });
+});
+
 // Tests for IntakeRequestPopover message integration
 describe('ChatPromptInput + ChatMessageList integration (AISC-94, AISC-96)', () => {
   it('non-empty submit appends a message and clears the input', async () => {

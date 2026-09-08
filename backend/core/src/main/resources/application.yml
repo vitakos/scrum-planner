@@ -25,3 +25,10 @@ app:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
   workspace:
     root: ${APP_WORKSPACE_ROOT:./workspaces}
+  llm:
+    # Minimal, single-provider LLM config for the Gap Analysis assistant (AISC-19).
+    # Deliberately not the multi-provider "AI Gateway" module from the roadmap —
+    # that's out of scope for this Epic; this is just enough to call one provider.
+    provider: ${APP_LLM_PROVIDER:anthropic}
+    api-key: ${APP_LLM_API_KEY:}
+    model: ${APP_LLM_MODEL:claude-3-5-sonnet-20241022}

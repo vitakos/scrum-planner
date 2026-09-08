@@ -1,5 +1,6 @@
 package com.scrumplanner.core.common;
 
+import com.scrumplanner.core.llm.LlmClientException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -16,6 +17,13 @@ public class ApiExceptionHandler {
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<Object> handleNotFound(NotFoundException ex) {
         return body(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    // AISC-19: the caller's request was fine, it's the upstream LLM provider (or its
+    // config) that failed — a 502 reflects that distinction rather than a generic 500.
+    @ExceptionHandler(LlmClientException.class)
+    public ResponseEntity<Object> handleLlmClientError(LlmClientException ex) {
+        return body(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)

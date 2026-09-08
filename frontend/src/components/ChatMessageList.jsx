@@ -3,6 +3,19 @@ import { useEffect, useRef } from 'react';
 // ChatMessageList (AISC-92, AISC-104): renders an array of {id, sender, text, timestamp} messages
 // in a scrollable container, auto-scrolling to the bottom on new messages.
 // AISC-104 adds support for rendering attachment chips.
+// AISC-19/AISC-20: messages with kind GAP_ANALYSIS/FOLLOW_UP render with a distinct
+// style so assistant-generated output stands out from plain chat turns. A message with
+// no kind (older sessions, or plain chat) renders as before.
+const KIND_CLASS = {
+  GAP_ANALYSIS: 'chat-message--gap-analysis',
+  FOLLOW_UP: 'chat-message--follow-up',
+};
+
+const KIND_LABEL = {
+  GAP_ANALYSIS: 'Gap Analysis',
+  FOLLOW_UP: 'Follow-up',
+};
+
 export default function ChatMessageList({ messages }) {
   const bottomRef = useRef(null);
 
@@ -24,8 +37,16 @@ export default function ChatMessageList({ messages }) {
   return (
     <div className="chat-message-list">
       {messages.map((message) => (
-        <div key={message.id} className="chat-message">
-          <div className="chat-message-sender">{message.sender}</div>
+        <div
+          key={message.id}
+          className={`chat-message${KIND_CLASS[message.kind] ? ` ${KIND_CLASS[message.kind]}` : ''}`}
+        >
+          <div className="chat-message-sender">
+            {message.sender}
+            {KIND_LABEL[message.kind] && (
+              <span className="chat-message-kind-badge">{KIND_LABEL[message.kind]}</span>
+            )}
+          </div>
           {message.text && <div className="chat-message-text">{message.text}</div>}
           {message.attachments && message.attachments.length > 0 && (
             <div className="chat-message-attachments">

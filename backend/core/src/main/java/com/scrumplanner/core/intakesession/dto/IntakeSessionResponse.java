@@ -11,12 +11,16 @@ public record IntakeSessionResponse(
     OffsetDateTime createdAt,
     OffsetDateTime updatedAt
 ) {
+    // AISC-176: kind (USER/GAP_ANALYSIS/FOLLOW_UP) lets the frontend render
+    // assistant-generated messages distinctly once a session is restored, not just
+    // right after they're first generated.
     public record IntakeMessageResponse(
         String id,
         String sender,
         String text,
         OffsetDateTime timestamp,
-        List<IntakeAttachmentResponse> attachments
+        List<IntakeAttachmentResponse> attachments,
+        String kind
     ) {}
 
     public record IntakeAttachmentResponse(

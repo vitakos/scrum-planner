@@ -1,5 +1,6 @@
 package com.scrumplanner.core.intakesession;
 
+import com.scrumplanner.core.gapanalysis.GapAnalysisService;
 import com.scrumplanner.core.intakesession.dto.IntakeMessageRequest;
 import com.scrumplanner.core.intakesession.dto.IntakeSessionResponse;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,16 @@ public class IntakeSessionController {
 
     private final IntakeSessionService sessionService;
     private final IntakeAttachmentStorage attachmentStorage;
+    private final GapAnalysisService gapAnalysisService;
 
-    public IntakeSessionController(IntakeSessionService sessionService, IntakeAttachmentStorage attachmentStorage) {
+    public IntakeSessionController(
+        IntakeSessionService sessionService,
+        IntakeAttachmentStorage attachmentStorage,
+        GapAnalysisService gapAnalysisService
+    ) {
         this.sessionService = sessionService;
         this.attachmentStorage = attachmentStorage;
+        this.gapAnalysisService = gapAnalysisService;
     }
 
     /**
@@ -87,6 +94,46 @@ public class IntakeSessionController {
     }
 
     /**
+     * POST /api/projects/{projectId}/intake-session/gap-analysis
+     * Generate a gap analysis from the intake conversation and (if available) the
+     * project's cloned repo (AISC-19), and persist it as an assistant message in the
+     * session.
+     */
+    @PostMapping("/gap-analysis")
+    public ResponseEntity<IntakeSessionResponse> generateGapAnalysis(@PathVariable String projectId) {
+        String gapAnalysisText = gapAnalysisService.generateGapAnalysis(projectId);
+        IntakeSessionDocument session = sessionService.addMessage(
+            projectId,
+            "Assistant",
+            gapAnalysisText,
+            IntakeSessionDocument.MessageKind.GAP_ANALYSIS
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(session));
+    }
+
+    /**
+     * POST /api/projects/{projectId}/intake-session/gap-analysis/follow-up
+     * Ask a follow-up question about the previously generated gap analysis (AISC-20).
+     * Persists both the user's follow-up and the assistant's reply as session messages.
+     * Fails with 400 (via GapAnalysisService) if no gap analysis exists yet.
+     */
+    @PostMapping("/gap-analysis/follow-up")
+    public ResponseEntity<IntakeSessionResponse> answerGapAnalysisFollowUp(
+        @PathVariable String projectId,
+        @RequestBody IntakeMessageRequest request
+    ) {
+        String answer = gapAnalysisService.answerFollowUp(projectId, request.text());
+        sessionService.addMessage(projectId, request.sender(), request.text(), IntakeSessionDocument.MessageKind.USER);
+        IntakeSessionDocument session = sessionService.addMessage(
+            projectId,
+            "Assistant",
+            answer,
+            IntakeSessionDocument.MessageKind.FOLLOW_UP
+        );
+        return ResponseEntity.status(HttpStatus.CREATED).body(mapToResponse(session));
+    }
+
+    /**
      * DELETE /api/projects/{projectId}/intake-session/attachments/{attachmentId}
      * Delete an attachment from storage.
      */
@@ -125,7 +172,10 @@ public class IntakeSessionController {
                         att.getName(),
                         att.getSize()
                     ))
-                    .collect(Collectors.toList())
+                    .collect(Collectors.toList()),
+                // AISC-176/AISC-178: getKind() defaults to USER for messages persisted
+                // before this field existed, so older sessions restore as plain chat.
+                msg.getKind().name()
             ))
             .collect(Collectors.toList());
 

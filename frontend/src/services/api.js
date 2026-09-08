@@ -126,5 +126,14 @@ export const api = {
     return response.json();
   },
   deleteIntakeAttachment: (projectId, attachmentId) =>
-    request(`/api/projects/${projectId}/intake-session/attachments/${attachmentId}`, { method: 'DELETE' })
+    request(`/api/projects/${projectId}/intake-session/attachments/${attachmentId}`, { method: 'DELETE' }),
+
+  // Gap Analysis assistant (AISC-19, AISC-20)
+  generateGapAnalysis: (projectId) =>
+    request(`/api/projects/${projectId}/intake-session/gap-analysis`, { method: 'POST' }),
+  answerGapAnalysisFollowUp: (projectId, payload) =>
+    request(`/api/projects/${projectId}/intake-session/gap-analysis/follow-up`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    })
 };

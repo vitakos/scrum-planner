@@ -794,6 +794,38 @@ textarea {
   width: 100%;
 }
 
+/* Gap Analysis assistant trigger (AISC-19) */
+.intake-gap-analysis-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.intake-gap-analysis-trigger {
+  align-self: flex-start;
+  background: var(--bg-subtle);
+  border-color: var(--border);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.intake-gap-analysis-trigger:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.intake-gap-analysis-error {
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+.intake-followup-status {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 /* Chat components (AISC-92, AISC-93, AISC-95) */
 .chat-message-list {
   display: flex;
@@ -816,6 +848,28 @@ textarea {
   font-weight: 600;
   font-size: 0.8rem;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* AISC-19/AISC-20: assistant-generated gap analysis / follow-up messages get a
+   distinct background + badge so they stand out from plain chat turns. */
+.chat-message--gap-analysis,
+.chat-message--follow-up {
+  background: #eef4ff;
+  border: 1px solid #cddcf7;
+}
+
+.chat-message-kind-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: white;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 1px 8px;
+  text-transform: uppercase;
 }
 
 .chat-message-text {

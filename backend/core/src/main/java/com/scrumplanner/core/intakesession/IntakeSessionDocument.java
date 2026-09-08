@@ -67,17 +67,26 @@ public class IntakeSessionDocument {
         private String text;
         private OffsetDateTime timestamp;
         private List<Attachment> attachments;
+        private MessageKind kind;
 
         protected IntakeMessage() {
             // MongoDB
         }
 
         public IntakeMessage(String id, String sender, String text, OffsetDateTime timestamp) {
+            this(id, sender, text, timestamp, MessageKind.USER);
+        }
+
+        // AISC-162: kind lets callers (e.g. GapAnalysisService) mark a message as
+        // AI-generated output rather than a plain chat turn, so it can be persisted
+        // and later restored/rendered distinctly (see AISC-19/AISC-21).
+        public IntakeMessage(String id, String sender, String text, OffsetDateTime timestamp, MessageKind kind) {
             this.id = id;
             this.sender = sender;
             this.text = text;
             this.timestamp = timestamp;
             this.attachments = List.of();
+            this.kind = kind;
         }
 
         public String getId() {
@@ -103,6 +112,18 @@ public class IntakeSessionDocument {
         public void setAttachments(List<Attachment> attachments) {
             this.attachments = attachments;
         }
+
+        // Defaults to USER for documents persisted before this field existed.
+        public MessageKind getKind() {
+            return kind != null ? kind : MessageKind.USER;
+        }
+    }
+
+    // AISC-162: distinguishes plain chat turns from assistant-generated output.
+    public enum MessageKind {
+        USER,
+        GAP_ANALYSIS,
+        FOLLOW_UP
     }
 
     // Nested class for attachments

@@ -38,16 +38,26 @@ public class IntakeSessionService {
     }
 
     /**
-     * Add a message to an intake session.
+     * Add a plain (user-authored) message to an intake session.
      */
     public IntakeSessionDocument addMessage(String projectId, String sender, String text) {
+        return addMessage(projectId, sender, text, IntakeSessionDocument.MessageKind.USER);
+    }
+
+    /**
+     * Add a message of a given kind to an intake session (AISC-162). Used directly by
+     * assistant-generated output (gap analysis, follow-up replies) so it can be
+     * distinguished from plain chat turns once persisted.
+     */
+    public IntakeSessionDocument addMessage(String projectId, String sender, String text, IntakeSessionDocument.MessageKind kind) {
         IntakeSessionDocument session = getOrCreateSession(projectId);
 
         IntakeSessionDocument.IntakeMessage message = new IntakeSessionDocument.IntakeMessage(
             UUID.randomUUID().toString(),
             sender,
             text,
-            OffsetDateTime.now()
+            OffsetDateTime.now(),
+            kind
         );
 
         List<IntakeSessionDocument.IntakeMessage> messages = new ArrayList<>(session.getMessages());

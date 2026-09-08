@@ -18,7 +18,49 @@ export default function IntakeRequestPopover({ project }) {
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState([]);
   const [attachments, setAttachments] = useState([]);
+  const [gapAnalysisLoading, setGapAnalysisLoading] = useState(false);
+  const [gapAnalysisError, setGapAnalysisError] = useState(null);
+  const [followUpLoading, setFollowUpLoading] = useState(false);
+  const [followUpError, setFollowUpError] = useState(null);
   const rootRef = useRef(null);
+
+  // AISC-20: once a gap analysis exists in the session, prompt submissions become
+  // follow-up questions about it rather than plain (locally-held) chat turns.
+  const hasGapAnalysis = messages.some((message) => message.kind === 'GAP_ANALYSIS');
+
+  // Generate Gap Analysis (AISC-19): calls the backend, which uses the intake
+  // conversation and (if available) the cloned repo, and persists the result as an
+  // assistant message in the session.
+  async function handleGenerateGapAnalysis() {
+    setGapAnalysisError(null);
+    setGapAnalysisLoading(true);
+    try {
+      const session = await api.generateGapAnalysis(project.id);
+      setMessages(session.messages);
+    } catch (error) {
+      setGapAnalysisError(error.message);
+    } finally {
+      setGapAnalysisLoading(false);
+    }
+  }
+
+  // AISC-20: ask a follow-up question about the existing gap analysis, using it (and
+  // the conversation so far) as context. Both the question and the assistant's reply
+  // are persisted server-side, so the response replaces local state with the session's.
+  async function handleFollowUpSubmit(text) {
+    setFollowUpError(null);
+    setFollowUpLoading(true);
+    try {
+      const session = await api.answerGapAnalysisFollowUp(project.id, { sender: 'You', text });
+      setMessages(session.messages);
+      setDraft('');
+      setAttachments([]);
+    } catch (error) {
+      setFollowUpError(error.message);
+    } finally {
+      setFollowUpLoading(false);
+    }
+  }
 
   // Hydrate session messages from backend on open (AISC-103)
   useEffect(() => {
@@ -91,12 +133,38 @@ export default function IntakeRequestPopover({ project }) {
             <ChatMessageList messages={messages} />
           )}
         </div>
+        <div className="intake-gap-analysis-actions">
+          <button
+            type="button"
+            className="intake-gap-analysis-trigger"
+            onClick={handleGenerateGapAnalysis}
+            disabled={gapAnalysisLoading}
+          >
+            {gapAnalysisLoading ? 'Generating Gap Analysis…' : 'Generate Gap Analysis'}
+          </button>
+          {gapAnalysisError && (
+            <div className="intake-gap-analysis-error" role="alert">
+              {gapAnalysisError}
+            </div>
+          )}
+          {followUpLoading && <div className="intake-followup-status">Answering…</div>}
+          {followUpError && (
+            <div className="intake-gap-analysis-error" role="alert">
+              {followUpError}
+            </div>
+          )}
+        </div>
         <ChatPromptInput
           value={draft}
           onChange={setDraft}
           attachments={attachments}
           onAttachmentsChange={setAttachments}
           onSubmit={(text, submittedAttachments) => {
+            if (hasGapAnalysis) {
+              handleFollowUpSubmit(text);
+              return;
+            }
+
             const newMessage = {
               id: Date.now().toString(),
               sender: 'You',
