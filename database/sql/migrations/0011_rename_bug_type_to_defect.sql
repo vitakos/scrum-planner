@@ -7,6 +7,12 @@
 -- removes the now-unreferenced 'bug' catalog row. All in one transaction via
 -- the existing psql -1 migration runner (also covers AISC-53's data
 -- migration in the same transaction).
+--
+-- AISC-53 note: this is the only migration needed for the rename. MongoDB's
+-- work_item_content documents (see docs/backlog-data-model.md) never store a
+-- 'type' field -- that lives solely in PostgreSQL's work_item.type column,
+-- which this migration already updates -- so no corresponding Mongo
+-- migration is required.
 
 INSERT INTO work_item_type_catalog (code, name, is_system, sort_order)
 SELECT 'defect', 'Defect', is_system, sort_order
