@@ -29,6 +29,19 @@ Yes — this works both ways:
 
 Either way, no separate screen-share is needed — pick whichever browser is already open and go.
 
+## Development Environment
+
+### Java
+
+The project requires Java 22 for building and running the backend. It is installed at:
+
+```
+C:\InstalledSoftware\Java\jdk-22
+```
+
+Make sure this path is set in your `JAVA_HOME` environment variable when building with `./gradlew` or
+running the backend via IDE/CLI.
+
 ## Accessing the backend REST API directly
 
 The backend (`backend/core`, Spring Boot) is a REST API with **no authentication** for local dev. When
@@ -39,6 +52,25 @@ the stack is running (`docker compose up` in `infra/`, or `./gradlew bootRun` / 
   Port is configurable via `BACKEND_PORT` in `infra/.env` (defaults to 8080).
 - `http://backend:8080` from **inside** another container on the `scrum-planner` compose network (e.g. the
   frontend container's nginx same-origin proxy — see `frontend/nginx.conf`).
+
+### Using CURL to test the API
+
+You can use **CURL** from PowerShell to interact with the REST API directly:
+
+```powershell
+# List all projects
+curl http://localhost:8080/api/projects
+
+# Fetch a work item by key
+curl http://localhost:8080/api/work-items/by-key/AISC-13
+
+# Create a work item
+curl -X POST http://localhost:8080/api/projects/{projectId}/work-items `
+  -Header "Content-Type: application/json" `
+  -Body '{"type":"task","title":"...","parentId":"<uuid>"}'
+```
+
+This is useful for quick API testing and debugging without needing the browser UI.
 
 Note for Claude specifically: a `device_bash` shell (the sandboxed Linux VM behind the remote-devices bridge)
 does **not** share the host's network namespace, so `curl http://localhost:8080/...` from there will fail
