@@ -8,7 +8,9 @@ import java.util.Set;
 
 /**
  * Defines which work item types can be parents for other work item types.
- * This enforces the valid hierarchy: Epic -> Feature -> User Story -> Task/Defect/Test Case -> Issue.
+ * This enforces the valid hierarchy: Epic -> Feature -> User Story -> Task/Defect/Test Case.
+ * Issue sits outside that chain: it's a root-level type that can optionally be linked to an
+ * Epic, Feature, or User Story, but never requires a parent (AISC-61/AISC-62).
  *
  * Used by WorkItemService to validate parent-child relationships when creating or updating work items.
  */
@@ -35,8 +37,10 @@ public class WorkItemRelationRules {
         // test_case can only have user_story as parent (AISC-57 adds, AISC-59 removes task/defect)
         ALLOWED_PARENTS.put("test_case", Set.of("user_story"));
 
-        // issue can have test_case as parent
-        ALLOWED_PARENTS.put("issue", Set.of("test_case"));
+        // issue is a root-level type: it can exist with no parent at all (AISC-61). It optionally
+        // accepts epic, feature, or user_story as parents (AISC-62) — these link customer-reported
+        // issues to relevant planned work, but they are not required.
+        ALLOWED_PARENTS.put("issue", Set.of("epic", "feature", "user_story"));
     }
 
     /**
