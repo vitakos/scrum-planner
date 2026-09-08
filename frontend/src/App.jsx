@@ -5,6 +5,7 @@ import ProjectWizardPage from './pages/ProjectWizardPage.jsx';
 import ConfigurePage from './pages/ConfigurePage.jsx';
 import BacklogPage from './pages/BacklogPage.jsx';
 import ProjectMenu from './components/ProjectMenu.jsx';
+import IntakeRequestPopover from './components/IntakeRequestPopover.jsx';
 
 // Matches a work item key such as "SPAI-1": project key + '-' + sequence
 // (see docs/backlog-data-model.md). Used to recognize internal links —
@@ -151,6 +152,7 @@ export default function App() {
               Configure
             </button>
           </nav>
+          <IntakeRequestPopover key={selectedProject.id} project={selectedProject} />
         </div>
         <ProjectMenu
           projects={projects}
