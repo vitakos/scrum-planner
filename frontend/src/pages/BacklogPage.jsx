@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api.js';
 import WorkItemBoard from '../components/WorkItemBoard.jsx';
 import BacklogTreeView from '../components/BacklogTreeView.jsx';
@@ -15,8 +16,27 @@ export default function BacklogPage({ project, focusItemKey, onItemOpened, onIte
   const [parentFilter, setParentFilter] = useState(null);
   const [presetParentId, setPresetParentId] = useState(null);
   const [customFieldCatalogs, setCustomFieldCatalogs] = useState([]);
-  const [hideClosed, setHideClosed] = useState(false);
   const [itemsLoading, setItemsLoading] = useState(false);
+
+  // "Hide closed items" defaults to on, and is persisted in the URL's
+  // ?hideClosed= query param so a page refresh or direct navigation to this
+  // URL keeps the user's choice (AISC-XXX bug fix). Only the literal string
+  // "false" turns it off; anything else (including the param being absent)
+  // means on.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [hideClosed, setHideClosedState] = useState(() => searchParams.get('hideClosed') !== 'false');
+
+  function setHideClosed(value) {
+    setHideClosedState(value);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('hideClosed', String(value));
+        return next;
+      },
+      { replace: true }
+    );
+  }
   // Tree view's popover: editing an existing item, or creating a new one
   // (root-level or as a child) — see WorkItemDetailModal's mode prop.
   const [modal, setModal] = useState(null);

@@ -52,24 +52,32 @@ export default function BacklogTreeView({
     [workflows, typeDepth]
   );
 
-  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  // Newest-created-first ordering: every list derived below (top-level
+  // roots and each parent's children list) is built from this copy so new
+  // items appear at the top without needing a page reload.
+  const sortedItems = useMemo(
+    () => [...items].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [items]
+  );
+
+  const byId = useMemo(() => new Map(sortedItems.map((i) => [i.id, i])), [sortedItems]);
   const childrenOf = useMemo(() => {
     const map = new Map();
-    for (const item of items) {
+    for (const item of sortedItems) {
       const parentKey = item.parentId && byId.has(item.parentId) ? item.parentId : null;
       if (!map.has(parentKey)) map.set(parentKey, []);
       map.get(parentKey).push(item);
     }
     return map;
-  }, [items, byId]);
+  }, [sortedItems, byId]);
 
   // Roots for the tree: normally items with no (known) parent. When a type
   // filter is active, items of that type become the roots instead, so the
   // tree shows "that type and the ones under it" as the spec asks for.
   const roots = useMemo(() => {
-    if (typeFilter) return items.filter((i) => i.type === typeFilter);
+    if (typeFilter) return sortedItems.filter((i) => i.type === typeFilter);
     return childrenOf.get(null) ?? [];
-  }, [items, childrenOf, typeFilter]);
+  }, [sortedItems, childrenOf, typeFilter]);
 
   // When a title filter is active, keep matching items plus their ancestors
   // (within the current root set) so the tree stays connected and shows
@@ -79,7 +87,7 @@ export default function BacklogTreeView({
     const needle = titleFilter.trim().toLowerCase();
     const keep = new Set();
     const rootIds = new Set(roots.map((r) => r.id));
-    for (const item of items) {
+    for (const item of sortedItems) {
       if (!item.title.toLowerCase().includes(needle)) continue;
       let current = item;
       // Walk up to the nearest tree root we're rendering from, marking the
@@ -92,7 +100,7 @@ export default function BacklogTreeView({
       keep.add(item.id);
     }
     return keep;
-  }, [titleFilter, items, byId, roots]);
+  }, [titleFilter, sortedItems, byId, roots]);
 
   function isVisible(item) {
     return !keepIds || keepIds.has(item.id);

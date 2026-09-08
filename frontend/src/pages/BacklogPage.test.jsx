@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import BacklogPage from './BacklogPage.jsx';
 import { api } from '../services/api.js';
 
@@ -81,65 +82,71 @@ beforeEach(() => {
   api.listCustomFields.mockResolvedValue([]);
 });
 
-async function renderBacklog() {
-  render(<BacklogPage project={PROJECT} focusItemKey={null} onItemOpened={vi.fn()} onItemClosed={vi.fn()} />);
+async function renderBacklog(initialEntries = ['/']) {
+  render(
+    <MemoryRouter initialEntries={initialEntries}>
+      <BacklogPage project={PROJECT} focusItemKey={null} onItemOpened={vi.fn()} onItemClosed={vi.fn()} />
+    </MemoryRouter>
+  );
   await screen.findByText('Story A');
 }
 
-describe('BacklogPage - Hide closed items toggle (AISC-76)', () => {
-  it('shows Done/Closed items by default, including as nested children', async () => {
-    api.listWorkItems.mockResolvedValue(FULL_LIST);
+describe('BacklogPage - Hide closed items toggle defaults to on (bug fix)', () => {
+  it('hides Done/Closed items by default, with no query param present', async () => {
+    api.listWorkItems.mockResolvedValue(FILTERED_LIST);
 
     await renderBacklog();
 
+    expect(api.listWorkItems).toHaveBeenCalledWith(PROJECT.id, undefined, true);
     expect(screen.getByText('Open Task')).toBeInTheDocument();
-    expect(screen.getByText('Done Task')).toBeInTheDocument();
-    expect(api.listWorkItems).toHaveBeenCalledWith(PROJECT.id, undefined, false);
+    expect(screen.queryByText('Done Task')).not.toBeInTheDocument();
+
+    const toggle = screen.getByRole('checkbox', { name: /hide closed items/i });
+    expect(toggle).toBeChecked();
+    expect(toggle.closest('label').className).toMatch(/active/);
   });
 
-  it('turning the toggle on re-fetches with excludeDoneCategory and hides Done/Closed items, including nested children', async () => {
-    api.listWorkItems.mockResolvedValueOnce(FULL_LIST).mockResolvedValueOnce(FILTERED_LIST);
+  it('turning the toggle off re-fetches without the filter and shows Done/Closed items, including nested children', async () => {
+    api.listWorkItems.mockResolvedValueOnce(FILTERED_LIST).mockResolvedValueOnce(FULL_LIST);
 
     await renderBacklog();
 
     const toggle = screen.getByRole('checkbox', { name: /hide closed items/i });
-    await userEvent.click(toggle);
-
-    await waitFor(() => expect(api.listWorkItems).toHaveBeenLastCalledWith(PROJECT.id, undefined, true));
-    await waitFor(() => expect(screen.queryByText('Done Task')).not.toBeInTheDocument());
-    expect(screen.getByText('Open Task')).toBeInTheDocument();
-  });
-
-  it('turning the toggle back off re-fetches without the filter and restores Done/Closed items', async () => {
-    api.listWorkItems
-      .mockResolvedValueOnce(FULL_LIST)
-      .mockResolvedValueOnce(FILTERED_LIST)
-      .mockResolvedValueOnce(FULL_LIST);
-
-    await renderBacklog();
-
-    const toggle = screen.getByRole('checkbox', { name: /hide closed items/i });
-    await userEvent.click(toggle);
-    await waitFor(() => expect(screen.queryByText('Done Task')).not.toBeInTheDocument());
-
     await userEvent.click(toggle);
 
     await waitFor(() => expect(api.listWorkItems).toHaveBeenLastCalledWith(PROJECT.id, undefined, false));
     await waitFor(() => expect(screen.getByText('Done Task')).toBeInTheDocument());
+    expect(screen.getByText('Open Task')).toBeInTheDocument();
+    expect(toggle).not.toBeChecked();
+    expect(toggle.closest('label').className).not.toMatch(/active/);
   });
 
-  it('visibly indicates the toggle is active while it is on', async () => {
-    api.listWorkItems.mockResolvedValueOnce(FULL_LIST).mockResolvedValueOnce(FILTERED_LIST);
+  it('turning the toggle back on re-fetches with the filter and hides Done/Closed items again', async () => {
+    api.listWorkItems
+      .mockResolvedValueOnce(FILTERED_LIST)
+      .mockResolvedValueOnce(FULL_LIST)
+      .mockResolvedValueOnce(FILTERED_LIST);
 
     await renderBacklog();
 
     const toggle = screen.getByRole('checkbox', { name: /hide closed items/i });
-    const label = toggle.closest('label');
-    expect(label.className).not.toMatch(/active/);
+    await userEvent.click(toggle);
+    await waitFor(() => expect(screen.getByText('Done Task')).toBeInTheDocument());
 
     await userEvent.click(toggle);
 
-    await waitFor(() => expect(label.className).toMatch(/active/));
-    expect(toggle).toBeChecked();
+    await waitFor(() => expect(api.listWorkItems).toHaveBeenLastCalledWith(PROJECT.id, undefined, true));
+    await waitFor(() => expect(screen.queryByText('Done Task')).not.toBeInTheDocument());
+  });
+
+  it('respects an explicit ?hideClosed=false in the URL, starting with the toggle off', async () => {
+    api.listWorkItems.mockResolvedValue(FULL_LIST);
+
+    await renderBacklog(['/?hideClosed=false']);
+
+    expect(api.listWorkItems).toHaveBeenCalledWith(PROJECT.id, undefined, false);
+    const toggle = screen.getByRole('checkbox', { name: /hide closed items/i });
+    expect(toggle).not.toBeChecked();
+    expect(screen.getByText('Done Task')).toBeInTheDocument();
   });
 });
