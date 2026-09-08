@@ -8,7 +8,7 @@ export const NATURAL_PARENT_TYPES = {
   user_story: ['feature'],
   task: ['user_story'],
   defect: ['user_story'],
-  test_case: ['task', 'defect'],
+  test_case: ['user_story'],
   issue: ['test_case']
 };
 

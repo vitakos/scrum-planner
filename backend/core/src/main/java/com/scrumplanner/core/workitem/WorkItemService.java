@@ -81,7 +81,7 @@ public class WorkItemService {
 
         UUID parentId = request.parentId();
         if (parentId != null) {
-            requireValidParent(projectId, parentId, null);
+            requireValidParent(projectId, parentId, request.type(), null);
         }
 
         int seq = project.nextWorkItemSeq();
@@ -194,7 +194,7 @@ public class WorkItemService {
 
         UUID parentId = request.parentId();
         if (parentId != null) {
-            requireValidParent(projectId, parentId, workItemId);
+            requireValidParent(projectId, parentId, item.getType(), workItemId);
         }
         item.reparent(parentId);
 
@@ -243,11 +243,11 @@ public class WorkItemService {
     }
 
     /**
-     * A parent must exist, belong to the same project, and (for an update on
-     * an existing item) not be the item itself or a descendant of it — since
-     * either would create a cycle in the hierarchy.
+     * A parent must exist, belong to the same project, be of an allowed type,
+     * and (for an update on an existing item) not be the item itself or a
+     * descendant of it — since either would create a cycle in the hierarchy.
      */
-    private void requireValidParent(UUID projectId, UUID parentId, UUID workItemId) {
+    private void requireValidParent(UUID projectId, UUID parentId, String childType, UUID workItemId) {
         if (workItemId != null && parentId.equals(workItemId)) {
             throw new ConflictException("A work item can't be its own parent");
         }
@@ -258,6 +258,9 @@ public class WorkItemService {
         if (!parent.getProjectId().equals(projectId)) {
             throw new ConflictException("Parent work item must belong to the same project");
         }
+
+        // Validate the parent-child type relationship
+        WorkItemRelationRules.validateParentType(childType, parent.getType());
 
         if (workItemId == null) {
             return;
