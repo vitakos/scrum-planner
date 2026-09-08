@@ -3,6 +3,10 @@
     {
       "file": "0001_init_collections.js",
       "appliedAt": "2026-09-06T09:15:54.019Z"
+    },
+    {
+      "file": "0002_intake_session_collection.js",
+      "appliedAt": "2026-09-08T16:58:01.881Z"
     }
   ]
 }
