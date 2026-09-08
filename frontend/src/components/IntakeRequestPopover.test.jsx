@@ -41,8 +41,8 @@ describe('IntakeRequestPopover (AISC-14)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Intake Request' }));
     await waitFor(() => expect(getPopover()).toBeVisible());
 
-    const input = screen.getByLabelText('Intake Request message');
-    expect(input).toBeInTheDocument();
+    const textarea = screen.getByLabelText('Chat message input');
+    expect(textarea).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Close' }));
     await waitFor(() => expect(getPopover()).not.toBeVisible());
@@ -53,7 +53,7 @@ describe('IntakeRequestPopover (AISC-14)', () => {
     // without any backend call.
     await userEvent.click(screen.getByRole('button', { name: 'Intake Request' }));
     await waitFor(() => expect(getPopover()).toBeVisible());
-    expect(screen.getByLabelText('Intake Request message')).toBe(input);
+    expect(screen.getByLabelText('Chat message input')).toBe(textarea);
   });
 
   it('closes when clicking outside the popover', async () => {

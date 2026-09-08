@@ -106,5 +106,25 @@ export const api = {
       body: JSON.stringify(payload)
     }),
   deleteWorkItem: (projectId, workItemId) =>
-    request(`/api/projects/${projectId}/work-items/${workItemId}`, { method: 'DELETE' })
+    request(`/api/projects/${projectId}/work-items/${workItemId}`, { method: 'DELETE' }),
+
+  // Intake session API (AISC-101)
+  getIntakeSession: (projectId) =>
+    request(`/api/projects/${projectId}/intake-session`),
+  createIntakeSession: (projectId, payload) =>
+    request(`/api/projects/${projectId}/intake-session`, { method: 'POST', body: JSON.stringify(payload) }),
+  addIntakeMessage: (projectId, payload) =>
+    request(`/api/projects/${projectId}/intake-session/messages`, { method: 'POST', body: JSON.stringify(payload) }),
+  uploadIntakeAttachment: async (projectId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${BASE_URL}/api/projects/${projectId}/intake-session/attachments`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+    return response.json();
+  },
+  deleteIntakeAttachment: (projectId, attachmentId) =>
+    request(`/api/projects/${projectId}/intake-session/attachments/${attachmentId}`, { method: 'DELETE' })
 };

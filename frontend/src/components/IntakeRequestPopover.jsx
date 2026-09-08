@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import ChatMessageList from './ChatMessageList.jsx';
+import ChatPromptInput from './ChatPromptInput.jsx';
+import { api } from '../services/api.js';
 
 // The "Intake Request" entry point (AISC-14): a button next to Backlog/Configure
 // that opens a chat-style popover scoped to the current project. The popover
@@ -13,10 +16,32 @@ import { useEffect, useRef, useState } from 'react';
 export default function IntakeRequestPopover({ project }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [attachments, setAttachments] = useState([]);
   const rootRef = useRef(null);
 
+  // Hydrate session messages from backend on open (AISC-103)
   useEffect(() => {
     if (!open) return undefined;
+
+    // Load messages from backend session if this is the first open
+    async function loadSession() {
+      if (messages.length === 0) {
+        try {
+          const session = await api.getIntakeSession(project.id);
+          if (session && session.messages && session.messages.length > 0) {
+            setMessages(session.messages);
+          }
+        } catch (error) {
+          // Intake session endpoint may not exist yet in backend (AISC-97-100)
+          // Silently ignore for now; messages will use local state
+          console.debug('Intake session not yet available:', error.message);
+        }
+      }
+    }
+
+    loadSession();
+
     function handleClickOutside(e) {
       if (rootRef.current && !rootRef.current.contains(e.target)) {
         setOpen(false);
@@ -31,7 +56,7 @@ export default function IntakeRequestPopover({ project }) {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [open]);
+  }, [open, messages.length, project.id]);
 
   return (
     <div className="intake-request" ref={rootRef}>
@@ -58,20 +83,36 @@ export default function IntakeRequestPopover({ project }) {
           </button>
         </div>
         <div className="intake-request-popover-body">
-          <p className="intake-request-placeholder">
-            Chat-driven intake for this project is coming soon.
-          </p>
+          {messages.length === 0 ? (
+            <p className="intake-request-placeholder">
+              Start a conversation about your change request.
+            </p>
+          ) : (
+            <ChatMessageList messages={messages} />
+          )}
         </div>
-        <div className="intake-request-popover-input">
-          <input
-            type="text"
-            placeholder="Describe what you need…"
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            aria-label="Intake Request message"
-            disabled
-          />
-        </div>
+        <ChatPromptInput
+          value={draft}
+          onChange={setDraft}
+          attachments={attachments}
+          onAttachmentsChange={setAttachments}
+          onSubmit={(text, submittedAttachments) => {
+            const newMessage = {
+              id: Date.now().toString(),
+              sender: 'You',
+              text,
+              timestamp: new Date(),
+              attachments: submittedAttachments.map((att) => ({
+                id: att.id,
+                name: att.name,
+                size: att.size,
+              })),
+            };
+            setMessages((prev) => [...prev, newMessage]);
+            setDraft('');
+            setAttachments([]);
+          }}
+        />
       </div>
     </div>
   );
