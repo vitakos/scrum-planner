@@ -82,4 +82,75 @@ class WorkItemMigrationIntegrityTest {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
     }
+
+    /**
+     * Covers AISC-65 Scenario 1 (re-parenting part): a Test Case that was
+     * originally parented to a Task (old invalid chain: User Story → Task →
+     * Test Case) is re-parented by migration 0013 to the User Story directly.
+     * Querying the API for this re-parented Test Case should return the corrected
+     * parentId/parentKey (User Story, not Task).
+     */
+    @Test
+    void reParentedTestCaseReportsCorrectUserStoryParent() throws Exception {
+        UUID projectId = UUID.randomUUID();
+        UUID userStoryId = UUID.randomUUID();
+        UUID testCaseId = UUID.randomUUID();
+        UUID stateId = UUID.randomUUID();
+        OffsetDateTime createdAt = OffsetDateTime.parse("2026-02-20T14:30:00Z");
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-02-25T09:15:00Z");
+
+        // Test Case that was re-parented from a Task to its User Story parent
+        WorkItemResponse reParentedTestCase = new WorkItemResponse(
+                testCaseId, "SPAI-99", projectId, "test_case", "Test Case",
+                "Verify login flow", "Steps: 1. Open app 2. Enter credentials 3. Verify success",
+                Map.of(),
+                stateId, "To Do", "to_do",
+                userStoryId, "SPAI-5", "User authentication", // Now correctly points to User Story, not Task
+                0, List.of(), createdAt, updatedAt);
+
+        when(workItemService.getWorkItem(eq(projectId), eq(testCaseId))).thenReturn(reParentedTestCase);
+
+        mockMvc.perform(get("/api/projects/{projectId}/work-items/{id}", projectId, testCaseId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("test_case"))
+                .andExpect(jsonPath("$.title").value("Verify login flow"))
+                .andExpect(jsonPath("$.parentId").value(userStoryId.toString()))
+                .andExpect(jsonPath("$.parentKey").value("SPAI-5"))
+                .andExpect(jsonPath("$.parentTitle").value("User authentication"));
+    }
+
+    /**
+     * Covers AISC-65 Scenario 1 (re-parenting part): an Issue that was
+     * originally parented to a Test Case (by the old model) is re-parented by
+     * migration 0013 to the Test Case's User Story grandparent. Querying the
+     * API should return the corrected parentId/parentKey (User Story, not Test Case).
+     */
+    @Test
+    void reParentedIssueReportsCorrectUserStoryParent() throws Exception {
+        UUID projectId = UUID.randomUUID();
+        UUID userStoryId = UUID.randomUUID();
+        UUID issueId = UUID.randomUUID();
+        UUID stateId = UUID.randomUUID();
+        OffsetDateTime createdAt = OffsetDateTime.parse("2026-03-01T11:00:00Z");
+        OffsetDateTime updatedAt = OffsetDateTime.parse("2026-03-05T16:45:00Z");
+
+        // Issue that was re-parented from a Test Case to the User Story
+        WorkItemResponse reParentedIssue = new WorkItemResponse(
+                issueId, "SPAI-888", projectId, "issue", "Issue",
+                "Login timeout after 5 minutes", "Customer reports being logged out unexpectedly",
+                Map.of(),
+                stateId, "New", "to_do",
+                userStoryId, "SPAI-5", "User authentication", // Now correctly points to User Story
+                0, List.of(), createdAt, updatedAt);
+
+        when(workItemService.getWorkItem(eq(projectId), eq(issueId))).thenReturn(reParentedIssue);
+
+        mockMvc.perform(get("/api/projects/{projectId}/work-items/{id}", projectId, issueId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.type").value("issue"))
+                .andExpect(jsonPath("$.title").value("Login timeout after 5 minutes"))
+                .andExpect(jsonPath("$.parentId").value(userStoryId.toString()))
+                .andExpect(jsonPath("$.parentKey").value("SPAI-5"))
+                .andExpect(jsonPath("$.parentTitle").value("User authentication"));
+    }
 }

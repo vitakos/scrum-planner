@@ -47,6 +47,10 @@
     {
       "file": "0012_rename_test_run_type_to_issue.sql",
       "appliedAt": "2026-09-08T13:56:12.246Z"
+    },
+    {
+      "file": "0013_reparent_legacy_qa_children.sql",
+      "appliedAt": "2026-09-08T16:25:51.497Z"
     }
   ]
 }

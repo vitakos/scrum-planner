@@ -1,6 +1,6 @@
 # Backlog Data Model
 
-This document defines the initial data model for backlog artifacts (Epics, Features, User Stories, Tasks, Bugs, Test Cases, Test Runs) in Scrum Planner Assisted by AI.
+This document defines the data model for backlog artifacts (Epics, Features, User Stories, Tasks, Defects, Test Cases, Issues) in Scrum Planner Assisted by AI.
 
 ## Storage split
 
@@ -11,11 +11,11 @@ Following the project's storage strategy (PostgreSQL for relational data, MongoD
 
 ## Work item modeling: single polymorphic table
 
-All backlog artifact types (Epic, Feature, User Story, Task, Bug, Test Case, Test Run) are modeled as a **single `work_item` table with a `type` discriminator**, rather than one table per type.
+All backlog artifact types (Epic, Feature, User Story, Task, Defect, Test Case, Issue) are modeled as a **single `work_item` table with a `type` discriminator**, rather than one table per type.
 
 **Why:** it keeps cross-cutting features (workflows, custom fields, custom menu options, linking, sprints) uniform across all artifact types instead of duplicating them per table. Adding a new artifact type later (e.g. "Risk") means adding a new `type` value, not a new table + new workflow engine wiring + new custom-field wiring.
 
-**Trade-off accepted:** type-specific validation (e.g. "a Test Run must reference a Test Case") lives in the application layer rather than in the database schema. This is standard for this pattern and is enforced via services/domain rules, not DB constraints.
+**Trade-off accepted:** type-specific validation (e.g. parent-child relation rules) lives in the application layer rather than in the database schema. This is standard for this pattern and is enforced via services/domain rules, not DB constraints (see `WorkItemRelationRules.java`).
 
 ### `work_item` (PostgreSQL)
 
@@ -23,10 +23,10 @@ All backlog artifact types (Epic, Feature, User Story, Task, Bug, Test Case, Tes
 |---|---|---|
 | `id` | UUID | |
 | `project_id` | FK → project | |
-| `type` | enum | Epic, Feature, UserStory, Task, Bug, TestCase, TestRun |
+| `type` | FK → work_item_type_catalog | Epic, Feature, UserStory, Task, Defect, TestCase, Issue |
 | `title` | text | |
 | `state_id` | FK → workflow_state | Current state (see Workflow model) |
-| `parent_id` | FK → work_item (nullable) | Hierarchy: Epic → Feature → User Story → Task/Bug; Test Case → Test Run |
+| `parent_id` | FK → work_item (nullable) | Hierarchy: Epic → Feature → User Story → {Task, Test Case, Defect}; Issue optionally parented to Epic/Feature/User Story or root-level |
 | `assignee_id` | FK → user (nullable) | |
 | `reporter_id` | FK → user (nullable) | |
 | `sprint_id` | FK → sprint (nullable) | |
@@ -81,7 +81,14 @@ This table is also the source for the metrics already planned in the Features li
 
 `work_item.state_id` references `workflow_state`; a transition is only allowed if it exists in `workflow_transition` for that item's workflow.
 
+## Issue as a root-level type
+
+Unlike other work item types in the hierarchy (Epic → Feature → User Story → {Task, Test Case, Defect}), **Issue is a root-level type** that can exist with no parent at all. This reflects its purpose: capturing customer-reported problems or feature requests from production, which may or may not map to planned work.
+
+- An Issue **may optionally** be linked to an Epic, Feature, or User Story when there is a direct relationship to existing planned work.
+- An Issue **may have no parent**, appearing as a root-level item in the backlog for triage, prioritization, or independent tracking.
+- The valid parent-child relations for all types are enforced at the application layer via `backend/core/src/main/java/com/scrumplanner/core/workitem/WorkItemRelationRules.java`, which is the source of truth for the hierarchy.
+
 ## Open items for later
-- Type-specific validation rules (e.g. required parent type per child type) — to be defined per artifact type as each is implemented.
 - Whether `work_item_link` needs its own workflow/approval (e.g. approving a "blocks" relationship) — deferred.
 - Full snapshot versioning — revisit if compliance/audit needs grow beyond the state-transition log.
