@@ -1,7 +1,7 @@
 // The standard work item type hierarchy for this app:
-// Epic -> Feature -> User Story -> Task/Defect -> Test Case -> Test Run.
+// Epic -> Feature -> User Story -> Task/Defect -> Test Case -> Issue.
 // Keyed by child type -> its natural parent type(s). Epic has no parent,
-// Test Run has no natural child. A type not listed here (e.g. a future
+// Issue has no natural child. A type not listed here (e.g. a future
 // custom type) simply gets no parent/child affordances.
 export const NATURAL_PARENT_TYPES = {
   feature: ['epic'],
@@ -9,7 +9,7 @@ export const NATURAL_PARENT_TYPES = {
   task: ['user_story'],
   defect: ['user_story'],
   test_case: ['task', 'defect'],
-  test_run: ['test_case']
+  issue: ['test_case']
 };
 
 const NATURAL_CHILD_TYPES = Object.entries(NATURAL_PARENT_TYPES).reduce((acc, [childType, parentTypes]) => {

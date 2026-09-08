@@ -22,7 +22,7 @@ describe('workItemHierarchy', () => {
     });
 
     it('returns an empty array for a type with no configured children', () => {
-      expect(childTypesFor('test_run')).toEqual([]);
+      expect(childTypesFor('issue')).toEqual([]);
     });
   });
 });
