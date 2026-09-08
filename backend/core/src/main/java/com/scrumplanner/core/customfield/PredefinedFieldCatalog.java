@@ -17,7 +17,7 @@ public final class PredefinedFieldCatalog {
             new PredefinedField("title", "Title", "TEXT",
                     "Short summary of the work item."),
             new PredefinedField("type", "Type", "TEXT",
-                    "The work item type (Epic, Feature, User Story, Task, Defect, Test Case, Test Run)."),
+                    "The work item type (Epic, Feature, User Story, Task, Defect, Test Case, Issue)."),
             new PredefinedField("state", "State", "SINGLE_SELECT",
                     "Current workflow state — configured in the Workflow tab."),
             new PredefinedField("parent", "Parent", "REFERENCE",
